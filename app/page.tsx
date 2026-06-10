@@ -9,7 +9,7 @@ import { ChatInput } from '@/components/chat-input';
 
 export default function Home() {
   const [file, setFile] = useState<UploadedFile | null>(null);
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, setMessages, stop, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
   });
 
@@ -17,6 +17,12 @@ export default function Home() {
 
   const handleFile = async (f: File) => {
     setFile({ name: f.name, content: await f.text() });
+  };
+
+  const handleRemove = () => {
+    stop();
+    setFile(null);
+    setMessages([]);
   };
 
   const handleSend = (text: string) => {
@@ -33,7 +39,7 @@ export default function Home() {
         <FileUpload
           file={file}
           onFile={handleFile}
-          onRemove={() => setFile(null)}
+          onRemove={handleRemove}
         />
 
         <MessageList
