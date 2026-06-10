@@ -8,7 +8,9 @@ import {
 } from 'ai';
 import { FileUpload } from '@/components/file-upload';
 import { FileTree } from '@/components/file-tree';
+import { FileViewer } from '@/components/file-viewer';
 import { MessageList } from '@/components/message-list';
+import { cn } from '@/lib/utils';
 import { ChatInput } from '@/components/chat-input';
 import {
   clearProject,
@@ -48,6 +50,9 @@ export default function Home() {
   // Result of the last save attempt, keyed by the message whose README was
   // saved — so the status shows next to that message's inline Save button.
   const [saveStatus, setSaveStatus] = useState<Record<string, string>>({});
+  // Path of the file open in the viewer, or null. When set, the layout splits:
+  // tree | file viewer | chat. Only one file is viewed at a time.
+  const [openFile, setOpenFile] = useState<string | null>(null);
 
   // The readFile tool runs on the client, so onToolCall needs the latest
   // project. A ref keeps it current without re-creating the chat.
@@ -174,6 +179,7 @@ export default function Home() {
     setDirHandle(null);
     setMessages([]);
     setSaveStatus({});
+    setOpenFile(null);
   };
 
   // Runs on a real click (the gesture both the picker and requestPermission
@@ -210,10 +216,29 @@ export default function Home() {
     <div className="flex h-dvh max-h-dvh overflow-hidden bg-background">
       {project && (
         <aside className="w-64 shrink-0 overflow-y-auto border-r p-3">
-          <FileTree project={project} />
+          <FileTree
+            project={project}
+            activePath={openFile}
+            onSelectFile={setOpenFile}
+          />
         </aside>
       )}
-      <main className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col gap-6 px-4 py-8">
+      {project && openFile && (
+        <FileViewer
+          project={project}
+          path={openFile}
+          onClose={() => setOpenFile(null)}
+        />
+      )}
+      <main
+        className={cn(
+          'flex min-h-0 flex-col gap-6 px-4 py-8',
+          // Centered readable column by default; an even split when a file is
+          // open (basis-0 + flex-1 so it and the viewer divide the leftover
+          // space equally, regardless of the fixed-width tree).
+          openFile ? 'min-w-0 flex-1 basis-0' : 'mx-auto w-full max-w-2xl',
+        )}
+      >
         <FileUpload
           project={project}
           onFiles={handleFiles}

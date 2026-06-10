@@ -6,18 +6,26 @@ import { TreeRow } from './tree-row';
 
 type FileTreeProps = {
   project: Project;
+  activePath: string | null;
+  onSelectFile: (path: string) => void;
 };
 
 /**
  * Read-only file tree for the active project, shown in the left sidebar.
- * Folders expand/collapse; files are inert for now (no contents are shown).
+ * Folders expand/collapse; clicking a file opens it in the viewer.
  */
-export function FileTree({ project }: FileTreeProps) {
+export function FileTree({ project, activePath, onSelectFile }: FileTreeProps) {
   const nodes = buildFileTree(project.files);
   return (
     <ul className="text-sm">
       {nodes.map((node) => (
-        <TreeRow key={node.path} node={node} depth={0} />
+        <TreeRow
+          key={node.path}
+          node={node}
+          depth={0}
+          activePath={activePath}
+          onSelectFile={onSelectFile}
+        />
       ))}
     </ul>
   );
