@@ -1,19 +1,24 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
+import { readDroppedEntries } from '@/lib/read-dropped-entries';
 
 type DropzoneProps = {
-  accept?: string;
-  onFile: (file: File) => void;
+  onFiles: (files: File[]) => void;
 };
 
-export function Dropzone({
-  accept = '.md,.txt,text/plain,text/markdown',
-  onFile,
-}: DropzoneProps) {
+export function Dropzone({ onFiles }: DropzoneProps) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // `webkitdirectory` must be set via the DOM; React doesn't render it reliably.
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.setAttribute('webkitdirectory', '');
+      inputRef.current.setAttribute('directory', '');
+    }
+  }, []);
 
   return (
     <>
@@ -25,11 +30,11 @@ export function Dropzone({
           setDragging(true);
         }}
         onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
+        onDrop={async (e) => {
           e.preventDefault();
           setDragging(false);
-          const f = e.dataTransfer.files?.[0];
-          if (f) onFile(f);
+          const files = await readDroppedEntries(e.dataTransfer);
+          if (files.length) onFiles(files);
         }}
         className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors ${
           dragging
@@ -39,18 +44,17 @@ export function Dropzone({
       >
         <Upload className="size-6 text-muted-foreground" />
         <span className="text-sm font-medium">
-          Drop a file or click to upload
+          Drop a project folder or click to upload
         </span>
-        <span className="text-xs text-muted-foreground">.md or .txt files</span>
+        <span className="text-xs text-muted-foreground">Max 1 MB total</span>
       </button>
       <input
         ref={inputRef}
         type="file"
-        accept={accept}
+        multiple
         className="hidden"
         onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onFile(f);
+          if (e.target.files?.length) onFiles(Array.from(e.target.files));
         }}
       />
     </>

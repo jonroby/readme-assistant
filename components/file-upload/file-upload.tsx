@@ -2,18 +2,23 @@
 
 import { Dropzone } from '@/components/dropzone';
 import { FileChip } from '@/components/file-chip';
-
-export type UploadedFile = { name: string; content: string };
+import type { Project } from '@/lib/project';
 
 type FileUploadProps = {
-  file: UploadedFile | null;
-  onFile: (file: File) => void;
+  project: Project | null;
+  onFiles: (files: File[]) => void;
   onRemove: () => void;
 };
 
-export function FileUpload({ file, onFile, onRemove }: FileUploadProps) {
-  if (file) {
-    return <FileChip fileName={file.name} onRemove={onRemove} />;
+export function FileUpload({ project, onFiles, onRemove }: FileUploadProps) {
+  if (project) {
+    return (
+      <FileChip
+        fileCount={project.files.length}
+        totalBytes={project.totalBytes}
+        onRemove={onRemove}
+      />
+    );
   }
-  return <Dropzone onFile={onFile} />;
+  return <Dropzone onFiles={onFiles} />;
 }
