@@ -20,6 +20,11 @@ import {
   type Project,
 } from '@/lib/project';
 import {
+  clearConversation,
+  loadConversation,
+  saveConversation,
+} from '@/lib/conversation';
+import {
   ensurePermission,
   pickDirectory,
   readDirectoryProject,
@@ -127,15 +132,27 @@ export default function Home() {
 
   const busy = status === 'streaming' || status === 'submitted';
 
-  // Restore a previously loaded project: file contents from localStorage (for
-  // the chat loop) and, if present, the directory handle from IndexedDB (for
-  // write-back). The handle's permission re-grant is deferred to a user click.
+  // True once the initial restore has run, so the persist effect below doesn't
+  // overwrite saved messages with the empty starting state on first render.
+  const restored = useRef(false);
+
+  // Restore a previously loaded session from localStorage: project file
+  // contents, the conversation, and (from IndexedDB) the directory handle for
+  // write-back. The handle's permission re-grant is deferred to a user click.
   useEffect(() => {
     setProject(loadProject());
+    const saved = loadConversation();
+    if (saved.length) setMessages(saved);
+    restored.current = true;
     loadHandle().then((handle) => {
       if (handle) setDirHandle(handle);
     });
-  }, []);
+  }, [setMessages]);
+
+  // Persist the conversation whenever it changes, so a reload restores it.
+  useEffect(() => {
+    if (restored.current) saveConversation(messages);
+  }, [messages]);
 
   // Upload fallback (non-Chromium): read File[] into the project, no handle.
   const handleFiles = async (files: File[]) => {
@@ -175,6 +192,7 @@ export default function Home() {
     stop();
     clearProject();
     clearHandle();
+    clearConversation();
     setProject(null);
     setDirHandle(null);
     setMessages([]);
