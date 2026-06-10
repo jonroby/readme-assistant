@@ -49,6 +49,19 @@ export async function readProject(files: File[]): Promise<Project> {
   return { files: result, totalBytes };
 }
 
+/**
+ * Find the project's existing README, if any — the file writeReadme would
+ * overwrite. Matches a root-level file named README (any extension/casing —
+ * README.md, readme.txt, README). Returns the matched ProjectFile so callers
+ * can read it or warn before overwriting.
+ */
+export function findReadme(project: Project): ProjectFile | undefined {
+  return project.files.find((f) => {
+    const name = f.path.split('/').pop() ?? '';
+    return /^readme(\.[^.]+)?$/i.test(name);
+  });
+}
+
 export function saveProject(project: Project): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
 }

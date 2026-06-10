@@ -26,6 +26,7 @@ import {
 } from '@/lib/directory';
 import { clearHandle, loadHandle, saveHandle } from '@/lib/handle-store';
 import {
+  runFindExistingReadme,
   runListFiles,
   runReadFile,
   runSearchFiles,
@@ -77,7 +78,13 @@ export default function Home() {
       // read/list/search tools report immediately; writeReadme does its async
       // save in a .then() that reports when it finishes. Never await here.
       onToolCall({ toolCall }) {
-        if (toolCall.toolName === 'listFiles') {
+        if (toolCall.toolName === 'findExistingReadme') {
+          addToolOutput({
+            tool: 'findExistingReadme',
+            toolCallId: toolCall.toolCallId,
+            output: runFindExistingReadme(projectRef.current),
+          });
+        } else if (toolCall.toolName === 'listFiles') {
           addToolOutput({
             tool: 'listFiles',
             toolCallId: toolCall.toolCallId,

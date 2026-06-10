@@ -16,6 +16,8 @@ function toolActivityLabel(part: {
   switch (part.type) {
     case 'tool-writeReadme':
       return '✍️ Writing README…';
+    case 'tool-findExistingReadme':
+      return '🔍 Checking for an existing README…';
     case 'tool-listFiles':
       return `🗂️ Listing files${part.input?.prefix ? ` in ${part.input.prefix}` : ''}…`;
     case 'tool-searchFiles':
