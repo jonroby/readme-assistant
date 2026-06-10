@@ -14,15 +14,17 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const hasText = message.parts.some(
     (p) => p.type === 'text' && p.text.length > 0,
   );
-  const toolReads = message.parts.filter((p) =>
+  const toolCalls = message.parts.filter((p) =>
     p.type.startsWith('tool-'),
   ) as Array<{ type: string; input?: { path?: string } }>;
 
   return (
     <div className="flex flex-col gap-2">
-      {toolReads.map((part, i) => (
+      {toolCalls.map((part, i) => (
         <span key={`tool-${i}`} className="text-xs text-muted-foreground">
-          📄 Reading {part.input?.path ?? 'file'}…
+          {part.type === 'tool-writeReadme'
+            ? '✍️ Writing README…'
+            : `📄 Reading ${part.input?.path ?? 'file'}…`}
         </span>
       ))}
       {hasText && (

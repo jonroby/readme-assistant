@@ -5,6 +5,22 @@ export const MAX_PROJECT_BYTES = 1024 * 1024; // 1 MB
 const STORAGE_KEY = 'project';
 
 /**
+ * OS/tooling artifacts to drop from an upload. This is NOT content filtering —
+ * the user still owns what real files they include. These are noise the user
+ * can't even see (e.g. .DS_Store is hidden in Finder) or never means to share.
+ */
+function isNoise(path: string): boolean {
+  const segments = path.split('/');
+  return segments.some(
+    (s) =>
+      s === '.DS_Store' ||
+      s === 'Thumbs.db' ||
+      s === '.git' ||
+      s === 'node_modules',
+  );
+}
+
+/**
  * Read every selected file as text and enforce the total-size cap.
  * No filtering — the whole selection counts toward the limit.
  * Throws if the total exceeds MAX_PROJECT_BYTES.
@@ -14,6 +30,9 @@ export async function readProject(files: File[]): Promise<Project> {
   const result: ProjectFile[] = [];
 
   for (const file of files) {
+    const path = file.webkitRelativePath || file.name;
+    if (isNoise(path)) continue;
+
     totalBytes += file.size;
     if (totalBytes > MAX_PROJECT_BYTES) {
       throw new Error(
@@ -22,7 +41,7 @@ export async function readProject(files: File[]): Promise<Project> {
     }
     result.push({
       // webkitRelativePath gives the in-folder path; fall back to the name.
-      path: file.webkitRelativePath || file.name,
+      path,
       content: await file.text(),
     });
   }
