@@ -7,13 +7,11 @@ export const maxDuration = 30;
 export async function POST(request: Request) {
   const {
     messages,
-    fileName,
-    fileContent,
-  }: { messages: UIMessage[]; fileName?: string; fileContent?: string } =
-    await request.json();
+    projectText,
+  }: { messages: UIMessage[]; projectText?: string } = await request.json();
 
-  const system = fileContent
-    ? `The user has uploaded a file named "${fileName}". Use its contents to answer their questions.\n\n--- FILE CONTENTS ---\n${fileContent}\n--- END FILE CONTENTS ---`
+  const system = projectText
+    ? `The user has uploaded a project. Each file is delimited by "=== <path> ===" headers. Use its contents to answer their questions.\n\n--- PROJECT FILES ---\n${projectText}\n--- END PROJECT FILES ---`
     : undefined;
 
   const result = streamText({
