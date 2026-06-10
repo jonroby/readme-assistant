@@ -6,14 +6,28 @@ import { DefaultChatTransport } from 'ai';
 
 export default function Home() {
   const [input, setInput] = useState('');
+  const [file, setFile] = useState<{ name: string; content: string } | null>(
+    null,
+  );
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
   });
 
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setFile({ name: f.name, content: await f.text() });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-    sendMessage({ text: input });
+    sendMessage(
+      { text: input },
+      file
+        ? { body: { fileName: file.name, fileContent: file.content } }
+        : undefined,
+    );
     setInput('');
   };
 
@@ -42,7 +56,17 @@ export default function Home() {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <label className="text-sm text-zinc-500 dark:text-zinc-400">
+            <input
+              type="file"
+              accept=".md,.txt,text/plain,text/markdown"
+              onChange={handleFile}
+              className="text-sm"
+            />
+            {file && <span className="ml-2">📄 {file.name}</span>}
+          </label>
+          <div className="flex gap-2">
           <input
             className="flex-1 rounded-full border border-zinc-300 bg-white px-4 py-2 text-black outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             value={input}
@@ -57,6 +81,7 @@ export default function Home() {
           >
             Send
           </button>
+          </div>
         </form>
       </main>
     </div>
