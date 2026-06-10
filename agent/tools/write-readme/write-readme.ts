@@ -8,7 +8,17 @@ import { z } from 'zod';
  */
 export const writeReadmeTool = tool({
   description:
-    'Save a README to the user’s disk, prompting them to choose where. Use this whenever the user wants a README generated, created, or written out. Pass the complete README markdown as `content`.',
+    'Save a README to the user’s disk, prompting them to choose where. Use ' +
+    'this whenever the user wants a README generated, created, or written out ' +
+    '— showing the draft in chat does not satisfy that request, so call this ' +
+    'as well (if they only want to review or discuss a draft, just show it). ' +
+    'Before generating from scratch, call findExistingReadme — if one exists, ' +
+    'improve it rather than discard it. ' +
+    'Pass the complete README markdown as `content`: clear, well-structured ' +
+    'markdown with a title, description, prerequisites, install, run/usage, ' +
+    'and any project-specific sections. Keep it accurate to the actual code — ' +
+    'never invent commands or features not found in the files. After saving ' +
+    'an edit to an existing README, briefly explain what you changed.',
   inputSchema: z.object({
     content: z
       .string()

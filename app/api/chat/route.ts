@@ -9,14 +9,14 @@ export const maxDuration = 30;
 export async function POST(request: Request) {
   const {
     messages,
-    paths,
-  }: { messages: UIMessage[]; paths?: string[] } = await request.json();
+    hasProject,
+  }: { messages: UIMessage[]; hasProject?: boolean } = await request.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    system: buildSystemPrompt(paths ?? []),
+    system: buildSystemPrompt(hasProject ?? false),
     messages: await convertToModelMessages(messages),
-    // readFile and writeReadme have no `execute` — both resolve on the client.
+    // No tool has `execute` — they all resolve on the client.
     tools,
     // Cap the agentic loop so a README run can read a few files then write.
     stopWhen: stepCountIs(6),
