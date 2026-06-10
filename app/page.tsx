@@ -33,6 +33,7 @@ import {
   type WriteReadmeInput,
 } from '@/agent/tools';
 import { Button } from '@/components/ui/button';
+import { stripOuterFence } from '@/agent/strip-fence';
 
 export default function Home() {
   const [project, setProject] = useState<Project | null>(null);
@@ -84,7 +85,7 @@ export default function Home() {
         } else if (toolCall.toolName === 'writeReadme') {
           const { content } = toolCall.input as WriteReadmeInput;
           // Stage the README for the user to save; the disk write needs a click.
-          setStagedReadme(content);
+          setStagedReadme(stripOuterFence(content));
           setSaveStatus(null);
           addToolOutput({
             tool: 'writeReadme',

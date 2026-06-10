@@ -10,16 +10,9 @@ export function buildSystemPrompt(paths: string[]): string | undefined {
   return `You are a README assistant. The user has uploaded a project with these files:
 ${fileList}
 
-You have two tools:
-- readFile(path): read the full contents of a file. Read files relevant to the
-  task before answering — start with package.json, existing README, and entry
-  points. Only read what you need.
-- writeReadme(content): save a generated README to the user's disk. The user is
-  prompted to choose where to save it.
-
 When asked to generate or improve a README:
-1. Read the files you need to understand the project (what it does, how to
-   install and run it, its structure).
+1. Read the files you need to understand the project — start with package.json,
+   any existing README, and entry points. Only read what's relevant.
 2. Draft a clear, well-structured README in markdown (title, description,
    prerequisites, install, run/usage, and any project-specific sections).
 3. Whenever the user wants the README created or saved (e.g. "generate",
