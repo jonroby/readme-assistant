@@ -21,12 +21,10 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !file) return;
     sendMessage(
       { text: input },
-      file
-        ? { body: { fileName: file.name, fileContent: file.content } }
-        : undefined,
+      { body: { fileName: file.name, fileContent: file.content } },
     );
     setInput('');
   };
@@ -34,10 +32,22 @@ export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex flex-1 w-full max-w-2xl flex-col gap-4 px-4 py-8">
+        <label className="flex items-center gap-2 border-b border-zinc-200 pb-4 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+          <input
+            type="file"
+            accept=".md,.txt,text/plain,text/markdown"
+            onChange={handleFile}
+            className="text-sm"
+          />
+          {file && <span>📄 {file.name}</span>}
+        </label>
+
         <div className="flex flex-1 flex-col gap-4">
           {messages.length === 0 && (
             <p className="text-zinc-500 dark:text-zinc-400">
-              Ask me anything to get started.
+              {file
+                ? 'Ask a question about your file.'
+                : 'Upload a file to get started.'}
             </p>
           )}
           {messages.map((message) => (
@@ -56,32 +66,21 @@ export default function Home() {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-          <label className="text-sm text-zinc-500 dark:text-zinc-400">
-            <input
-              type="file"
-              accept=".md,.txt,text/plain,text/markdown"
-              onChange={handleFile}
-              className="text-sm"
-            />
-            {file && <span className="ml-2">📄 {file.name}</span>}
-          </label>
-          <div className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <input
-            className="flex-1 rounded-full border border-zinc-300 bg-white px-4 py-2 text-black outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className="flex-1 rounded-full border border-zinc-300 bg-white px-4 py-2 text-black outline-none focus:border-zinc-500 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             value={input}
-            placeholder="Say something..."
+            placeholder={file ? 'Ask about your file...' : 'Upload a file first'}
             onChange={(e) => setInput(e.target.value)}
-            disabled={status === 'streaming' || status === 'submitted'}
+            disabled={!file || status === 'streaming' || status === 'submitted'}
           />
           <button
             type="submit"
             className="rounded-full bg-foreground px-5 py-2 text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
-            disabled={status === 'streaming' || status === 'submitted'}
+            disabled={!file || status === 'streaming' || status === 'submitted'}
           >
             Send
           </button>
-          </div>
         </form>
       </main>
     </div>
