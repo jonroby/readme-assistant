@@ -8,6 +8,24 @@ type ChatMessageProps = {
   message: UIMessage;
 };
 
+/** One-line "what the agent is doing" label for a tool-call part. */
+function toolActivityLabel(part: {
+  type: string;
+  input?: { path?: string; prefix?: string; query?: string };
+}): string {
+  switch (part.type) {
+    case 'tool-writeReadme':
+      return '✍️ Writing README…';
+    case 'tool-listFiles':
+      return `🗂️ Listing files${part.input?.prefix ? ` in ${part.input.prefix}` : ''}…`;
+    case 'tool-searchFiles':
+      return `🔎 Searching for "${part.input?.query ?? ''}"…`;
+    case 'tool-readFile':
+    default:
+      return `📄 Reading ${part.input?.path ?? 'file'}…`;
+  }
+}
+
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
 
@@ -22,15 +40,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
   );
   const toolCalls = message.parts.filter((p) =>
     p.type.startsWith('tool-'),
-  ) as Array<{ type: string; input?: { path?: string } }>;
+  ) as Array<{
+    type: string;
+    input?: { path?: string; prefix?: string; query?: string };
+  }>;
 
   return (
     <div className="flex flex-col gap-2">
       {toolCalls.map((part, i) => (
         <span key={`tool-${i}`} className="text-xs text-muted-foreground">
-          {part.type === 'tool-writeReadme'
-            ? '✍️ Writing README…'
-            : `📄 Reading ${part.input?.path ?? 'file'}…`}
+          {toolActivityLabel(part)}
         </span>
       ))}
       {hasText &&

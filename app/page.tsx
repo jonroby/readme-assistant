@@ -26,10 +26,14 @@ import {
 } from '@/lib/directory';
 import { clearHandle, loadHandle, saveHandle } from '@/lib/handle-store';
 import {
+  runListFiles,
   runReadFile,
+  runSearchFiles,
   runWriteReadme,
   saveReadmeToDisk,
+  type ListFilesInput,
   type ReadFileInput,
+  type SearchFilesInput,
   type WriteReadmeInput,
 } from '@/agent/tools';
 import { Button } from '@/components/ui/button';
@@ -69,11 +73,29 @@ export default function Home() {
         },
       }),
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-      // Both tools resolve on the client. onToolCall is synchronous: readFile
-      // reports immediately; writeReadme does its async save in a .then() that
-      // reports when it finishes. We never await inside onToolCall.
+      // All tools resolve on the client. onToolCall is synchronous: the
+      // read/list/search tools report immediately; writeReadme does its async
+      // save in a .then() that reports when it finishes. Never await here.
       onToolCall({ toolCall }) {
-        if (toolCall.toolName === 'readFile') {
+        if (toolCall.toolName === 'listFiles') {
+          addToolOutput({
+            tool: 'listFiles',
+            toolCallId: toolCall.toolCallId,
+            output: runListFiles(
+              toolCall.input as ListFilesInput,
+              projectRef.current,
+            ),
+          });
+        } else if (toolCall.toolName === 'searchFiles') {
+          addToolOutput({
+            tool: 'searchFiles',
+            toolCallId: toolCall.toolCallId,
+            output: runSearchFiles(
+              toolCall.input as SearchFilesInput,
+              projectRef.current,
+            ),
+          });
+        } else if (toolCall.toolName === 'readFile') {
           addToolOutput({
             tool: 'readFile',
             toolCallId: toolCall.toolCallId,

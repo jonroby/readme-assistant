@@ -10,9 +10,17 @@ export function buildSystemPrompt(paths: string[]): string | undefined {
   return `You are a README assistant. The user has uploaded a project with these files:
 ${fileList}
 
+You have tools to explore the project:
+- listFiles — list paths, optionally under a directory prefix. Use it to
+  discover structure in large projects (the list above may be truncated).
+- searchFiles — find where a string appears across files. Use it to locate
+  relevant code without reading whole files.
+- readFile — read a file's full contents once you know it's relevant.
+
 When asked to generate or improve a README:
 1. Read the files you need to understand the project — start with package.json,
-   any existing README, and entry points. Only read what's relevant.
+   any existing README, and entry points. In a large project, use listFiles and
+   searchFiles to find them first. Only read what's relevant.
 2. Draft a clear, well-structured README in markdown (title, description,
    prerequisites, install, run/usage, and any project-specific sections).
 3. Whenever the user wants the README created or saved (e.g. "generate",
