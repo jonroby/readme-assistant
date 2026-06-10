@@ -60,14 +60,14 @@ export default function Home() {
     useChat({
       transport: new DefaultChatTransport({
         api: '/api/chat',
-        // Runs on every request (initial + tool-result resume), so the file
-        // list is always present — not just on the first message.
+        // Runs on every request (initial + tool-result resume). We only signal
+        // whether a project is loaded; the model discovers paths via listFiles.
         prepareSendMessagesRequest({ messages, body }) {
           return {
             body: {
               ...body,
               messages,
-              paths: projectRef.current?.files.map((f) => f.path) ?? [],
+              hasProject: !!projectRef.current?.files.length,
             },
           };
         },
