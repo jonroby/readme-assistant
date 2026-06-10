@@ -1,11 +1,11 @@
 import type { Project, ProjectFile } from '@/lib/project';
 
 /**
- * The project's display name: the top-level folder from the file paths.
- * Empty string if there are no files.
+ * The project's display name — the picked folder's name, set when the project
+ * was read. Falls back to "Project" if missing (e.g. older persisted data).
  */
 export function projectName(project: Project): string {
-  return project.files[0]?.path.split('/')[0] ?? '';
+  return project.name || 'Project';
 }
 
 export type TreeNode = {

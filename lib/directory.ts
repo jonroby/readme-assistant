@@ -86,7 +86,9 @@ export async function readDirectoryProject(
   }
 
   await walk(dir, '');
-  return { files, totalBytes };
+  // dir.name is the picked folder; paths are relative to it, so it isn't in
+  // them — this is the authoritative project name.
+  return { name: dir.name, files, totalBytes };
 }
 
 /** Write (creating or overwriting) a file directly into the project folder. */
