@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 import { FileUpload } from '@/components/file-upload';
 import { MessageList } from '@/components/message-list';
 import { ChatInput } from '@/components/chat-input';
@@ -17,9 +20,41 @@ import {
 export default function Home() {
   const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { messages, sendMessage, setMessages, stop, status } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat' }),
-  });
+
+  // The readFile tool runs on the client, so onToolCall needs the latest
+  // project. A ref keeps it current without re-creating the chat.
+  const projectRef = useRef<Project | null>(null);
+  projectRef.current = project;
+
+  const { messages, sendMessage, setMessages, stop, addToolResult, status } =
+    useChat({
+      transport: new DefaultChatTransport({
+        api: '/api/chat',
+        // Runs on every request (initial + tool-result resume), so the file
+        // list is always present — not just on the first message.
+        prepareSendMessagesRequest({ messages, body }) {
+          return {
+            body: {
+              ...body,
+              messages,
+              paths: projectRef.current?.files.map((f) => f.path) ?? [],
+            },
+          };
+        },
+      }),
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+      onToolCall({ toolCall }) {
+        if (toolCall.toolName !== 'readFile') return;
+        const { path } = toolCall.input as { path: string };
+        const file = projectRef.current?.files.find((f) => f.path === path);
+        // Not awaited — awaiting inside onToolCall can deadlock the loop.
+        addToolResult({
+          tool: 'readFile',
+          toolCallId: toolCall.toolCallId,
+          output: file ? file.content : `File not found: ${path}`,
+        });
+      },
+    });
 
   const busy = status === 'streaming' || status === 'submitted';
 
@@ -48,10 +83,7 @@ export default function Home() {
 
   const handleSend = (text: string) => {
     if (!project) return;
-    const projectText = project.files
-      .map((f) => `=== ${f.path} ===\n${f.content}`)
-      .join('\n\n');
-    sendMessage({ text }, { body: { projectText } });
+    sendMessage({ text });
   };
 
   return (
