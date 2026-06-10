@@ -1,4 +1,12 @@
-import type { ProjectFile } from '@/lib/project';
+import type { Project, ProjectFile } from '@/lib/project';
+
+/**
+ * The project's display name: the top-level folder from the file paths.
+ * Empty string if there are no files.
+ */
+export function projectName(project: Project): string {
+  return project.files[0]?.path.split('/')[0] ?? '';
+}
 
 export type TreeNode = {
   name: string;

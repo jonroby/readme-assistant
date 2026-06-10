@@ -18,7 +18,7 @@ export function FileViewer({ project, path, onClose }: FileViewerProps) {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col border-r">
-      <div className="flex items-center justify-between gap-2 border-b px-4 py-2">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b px-4">
         <span className="truncate font-mono text-sm">{path}</span>
         <button
           type="button"
