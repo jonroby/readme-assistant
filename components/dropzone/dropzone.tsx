@@ -6,9 +6,12 @@ import { readDroppedEntries } from '@/lib/read-dropped-entries';
 
 type DropzoneProps = {
   onFiles: (files: File[]) => void;
+  // When set (browser supports directory access), clicking picks a folder via
+  // the File System Access API instead of the upload input.
+  onPickDirectory?: () => void;
 };
 
-export function Dropzone({ onFiles }: DropzoneProps) {
+export function Dropzone({ onFiles, onPickDirectory }: DropzoneProps) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -24,7 +27,9 @@ export function Dropzone({ onFiles }: DropzoneProps) {
     <>
       <button
         type="button"
-        onClick={() => inputRef.current?.click()}
+        onClick={() =>
+          onPickDirectory ? onPickDirectory() : inputRef.current?.click()
+        }
         onDragOver={(e) => {
           e.preventDefault();
           setDragging(true);

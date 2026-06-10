@@ -1,6 +1,8 @@
 'use client';
 
 import type { UIMessage } from 'ai';
+import Markdown from 'react-markdown';
+import { stripOuterFence } from '@/agent/strip-fence';
 
 type ChatMessageProps = {
   message: UIMessage;
@@ -14,30 +16,35 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const hasText = message.parts.some(
     (p) => p.type === 'text' && p.text.length > 0,
   );
-  const toolReads = message.parts.filter((p) =>
+  // react-markdown takes one string, so join the text parts.
+  const assistantText = stripOuterFence(
+    message.parts.map((p) => (p.type === 'text' ? p.text : '')).join(''),
+  );
+  const toolCalls = message.parts.filter((p) =>
     p.type.startsWith('tool-'),
   ) as Array<{ type: string; input?: { path?: string } }>;
 
   return (
     <div className="flex flex-col gap-2">
-      {toolReads.map((part, i) => (
+      {toolCalls.map((part, i) => (
         <span key={`tool-${i}`} className="text-xs text-muted-foreground">
-          📄 Reading {part.input?.path ?? 'file'}…
+          {part.type === 'tool-writeReadme'
+            ? '✍️ Writing README…'
+            : `📄 Reading ${part.input?.path ?? 'file'}…`}
         </span>
       ))}
-      {hasText && (
-        <div
-          className={
-            isUser
-              ? 'max-w-[80%] self-end rounded-lg bg-primary px-4 py-2 text-primary-foreground'
-              : 'max-w-[80%] self-start rounded-lg bg-muted px-4 py-2 text-foreground'
-          }
-        >
-          {message.parts.map((part, i) =>
-            part.type === 'text' ? <span key={i}>{part.text}</span> : null,
-          )}
-        </div>
-      )}
+      {hasText &&
+        (isUser ? (
+          <div className="max-w-[80%] self-end rounded-lg bg-primary px-4 py-2 text-primary-foreground">
+            {message.parts.map((part, i) =>
+              part.type === 'text' ? <span key={i}>{part.text}</span> : null,
+            )}
+          </div>
+        ) : (
+          <div className="prose prose-sm dark:prose-invert min-w-0 max-w-full break-words text-foreground prose-pre:whitespace-pre-wrap">
+            <Markdown>{assistantText}</Markdown>
+          </div>
+        ))}
     </div>
   );
 }
