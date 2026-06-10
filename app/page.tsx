@@ -7,6 +7,7 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 import { FileUpload } from '@/components/file-upload';
+import { FileTree } from '@/components/file-tree';
 import { MessageList } from '@/components/message-list';
 import { ChatInput } from '@/components/chat-input';
 import {
@@ -206,8 +207,13 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-dvh max-h-dvh flex-col items-center overflow-hidden bg-background">
-      <main className="flex w-full min-h-0 max-w-2xl flex-1 flex-col gap-6 px-4 py-8">
+    <div className="flex h-dvh max-h-dvh overflow-hidden bg-background">
+      {project && (
+        <aside className="w-64 shrink-0 overflow-y-auto border-r p-3">
+          <FileTree project={project} />
+        </aside>
+      )}
+      <main className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col gap-6 px-4 py-8">
         <FileUpload
           project={project}
           onFiles={handleFiles}
