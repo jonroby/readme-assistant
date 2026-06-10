@@ -9,7 +9,7 @@ const STORAGE_KEY = 'project';
  * the user still owns what real files they include. These are noise the user
  * can't even see (e.g. .DS_Store is hidden in Finder) or never means to share.
  */
-function isNoise(path: string): boolean {
+export function isNoise(path: string): boolean {
   const segments = path.split('/');
   return segments.some(
     (s) =>

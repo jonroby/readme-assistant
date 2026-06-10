@@ -17,6 +17,15 @@ import {
   type Project,
 } from '@/lib/project';
 import {
+  ensurePermission,
+  pickDirectory,
+  readDirectoryProject,
+  supportsDirectoryAccess,
+  writeFileToDirectory,
+  type DirectoryHandle,
+} from '@/lib/directory';
+import { clearHandle, loadHandle, saveHandle } from '@/lib/handle-store';
+import {
   runReadFile,
   runWriteReadme,
   saveReadmeToDisk,
@@ -28,6 +37,10 @@ import { Button } from '@/components/ui/button';
 export default function Home() {
   const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The picked project folder, when the browser supports directory access. Kept
+  // so we can write the README straight back into the same folder, and persisted
+  // in IndexedDB so it survives reloads. Null when using the upload fallback.
+  const [dirHandle, setDirHandle] = useState<DirectoryHandle | null>(null);
   // README content the model staged via writeReadme, awaiting a user click to
   // write to disk (showSaveFilePicker needs a gesture — see saveReadmeToDisk).
   const [stagedReadme, setStagedReadme] = useState<string | null>(null);
@@ -84,11 +97,17 @@ export default function Home() {
 
   const busy = status === 'streaming' || status === 'submitted';
 
-  // Restore a previously uploaded project from localStorage.
+  // Restore a previously loaded project: file contents from localStorage (for
+  // the chat loop) and, if present, the directory handle from IndexedDB (for
+  // write-back). The handle's permission re-grant is deferred to a user click.
   useEffect(() => {
     setProject(loadProject());
+    loadHandle().then((handle) => {
+      if (handle) setDirHandle(handle);
+    });
   }, []);
 
+  // Upload fallback (non-Chromium): read File[] into the project, no handle.
   const handleFiles = async (files: File[]) => {
     setError(null);
     try {
@@ -100,18 +119,59 @@ export default function Home() {
     }
   };
 
+  // Preferred path (Chromium): pick a folder via the directory picker. Gives a
+  // writable handle we persist, so the README can be written back into it.
+  const handlePickDirectory = async () => {
+    setError(null);
+    try {
+      const handle = await pickDirectory();
+      if (!(await ensurePermission(handle))) {
+        setError('Permission to access the folder was denied.');
+        return;
+      }
+      const next = await readDirectoryProject(handle);
+      saveProject(next);
+      await saveHandle(handle);
+      setProject(next);
+      setDirHandle(handle);
+    } catch (e) {
+      // AbortError = user cancelled the folder picker; not an error.
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      setError(e instanceof Error ? e.message : 'Failed to read folder.');
+    }
+  };
+
   const handleRemove = () => {
     stop();
     clearProject();
+    clearHandle();
     setProject(null);
+    setDirHandle(null);
     setMessages([]);
     setStagedReadme(null);
     setSaveStatus(null);
   };
 
-  // Runs on a real click, so showSaveFilePicker has its required user gesture.
+  // Runs on a real click (the gesture both the picker and requestPermission
+  // need). With a directory handle we write straight into the project folder;
+  // otherwise we fall back to the save-file dialog.
   const handleSaveReadme = async () => {
     if (!stagedReadme) return;
+    if (dirHandle) {
+      try {
+        if (!(await ensurePermission(dirHandle))) {
+          setSaveStatus('Permission to write to the folder was denied.');
+          return;
+        }
+        await writeFileToDirectory(dirHandle, 'README.md', stagedReadme);
+        setSaveStatus('README written to the project folder.');
+      } catch (e) {
+        setSaveStatus(
+          `Failed to write README: ${e instanceof Error ? e.message : 'unknown error'}`,
+        );
+      }
+      return;
+    }
     setSaveStatus(await saveReadmeToDisk(stagedReadme));
   };
 
@@ -126,6 +186,9 @@ export default function Home() {
         <FileUpload
           project={project}
           onFiles={handleFiles}
+          onPickDirectory={
+            supportsDirectoryAccess() ? handlePickDirectory : undefined
+          }
           onRemove={handleRemove}
         />
 
