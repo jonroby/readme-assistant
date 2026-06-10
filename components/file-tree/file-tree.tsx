@@ -5,6 +5,7 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Project } from '@/lib/project';
 import { ClearProjectDialog } from './clear-project-dialog';
+import { SnapshotInfo } from './snapshot-info';
 import { projectName } from './tree';
 import { TreeList } from './tree-list';
 
@@ -46,9 +47,12 @@ export function FileTree({
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r">
       <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b px-2 pl-4">
-        <span className="truncate text-sm font-medium">
-          {projectName(project)}
-        </span>
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="truncate text-sm font-medium">
+            {projectName(project)}
+          </span>
+          <SnapshotInfo />
+        </div>
         <Button
           variant="ghost"
           size="icon-sm"
