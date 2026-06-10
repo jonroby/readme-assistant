@@ -19,7 +19,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   ) as Array<{ type: string; input?: { path?: string } }>;
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       {toolReads.map((part, i) => (
         <span key={`tool-${i}`} className="text-xs text-muted-foreground">
           📄 Reading {part.input?.path ?? 'file'}…
