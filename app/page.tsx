@@ -6,8 +6,11 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
-import { FileUpload } from '@/components/file-upload';
+import { Dropzone } from '@/components/dropzone';
+import { FileTree } from '@/components/file-tree';
+import { FileViewer } from '@/components/file-viewer';
 import { MessageList } from '@/components/message-list';
+import { cn } from '@/lib/utils';
 import { ChatInput } from '@/components/chat-input';
 import {
   clearProject,
@@ -16,6 +19,11 @@ import {
   saveProject,
   type Project,
 } from '@/lib/project';
+import {
+  clearConversation,
+  loadConversation,
+  saveConversation,
+} from '@/lib/conversation';
 import {
   ensurePermission,
   pickDirectory,
@@ -47,6 +55,9 @@ export default function Home() {
   // Result of the last save attempt, keyed by the message whose README was
   // saved — so the status shows next to that message's inline Save button.
   const [saveStatus, setSaveStatus] = useState<Record<string, string>>({});
+  // Path of the file open in the viewer, or null. When set, the layout splits:
+  // tree | file viewer | chat. Only one file is viewed at a time.
+  const [openFile, setOpenFile] = useState<string | null>(null);
 
   // The readFile tool runs on the client, so onToolCall needs the latest
   // project. A ref keeps it current without re-creating the chat.
@@ -121,15 +132,27 @@ export default function Home() {
 
   const busy = status === 'streaming' || status === 'submitted';
 
-  // Restore a previously loaded project: file contents from localStorage (for
-  // the chat loop) and, if present, the directory handle from IndexedDB (for
-  // write-back). The handle's permission re-grant is deferred to a user click.
+  // True once the initial restore has run, so the persist effect below doesn't
+  // overwrite saved messages with the empty starting state on first render.
+  const restored = useRef(false);
+
+  // Restore a previously loaded session from localStorage: project file
+  // contents, the conversation, and (from IndexedDB) the directory handle for
+  // write-back. The handle's permission re-grant is deferred to a user click.
   useEffect(() => {
     setProject(loadProject());
+    const saved = loadConversation();
+    if (saved.length) setMessages(saved);
+    restored.current = true;
     loadHandle().then((handle) => {
       if (handle) setDirHandle(handle);
     });
-  }, []);
+  }, [setMessages]);
+
+  // Persist the conversation whenever it changes, so a reload restores it.
+  useEffect(() => {
+    if (restored.current) saveConversation(messages);
+  }, [messages]);
 
   // Upload fallback (non-Chromium): read File[] into the project, no handle.
   const handleFiles = async (files: File[]) => {
@@ -169,10 +192,12 @@ export default function Home() {
     stop();
     clearProject();
     clearHandle();
+    clearConversation();
     setProject(null);
     setDirHandle(null);
     setMessages([]);
     setSaveStatus({});
+    setOpenFile(null);
   };
 
   // Runs on a real click (the gesture both the picker and requestPermission
@@ -205,38 +230,61 @@ export default function Home() {
     sendMessage({ text });
   };
 
-  return (
-    <div className="flex h-dvh max-h-dvh flex-col items-center overflow-hidden bg-background">
-      <main className="flex w-full min-h-0 max-w-2xl flex-1 flex-col gap-6 px-4 py-8">
-        <FileUpload
-          project={project}
-          onFiles={handleFiles}
-          onPickDirectory={
-            supportsDirectoryAccess() ? handlePickDirectory : undefined
-          }
-          onRemove={handleRemove}
-        />
+  // No project yet: a single centered prompt to upload one. Picking a folder
+  // reveals the workspace (tree | viewer | chat).
+  if (!project) {
+    return (
+      <div className="flex h-dvh max-h-dvh items-center justify-center overflow-hidden bg-background p-4">
+        <div className="flex w-full max-w-md flex-col items-center gap-4">
+          <Dropzone
+            onFiles={handleFiles}
+            onPickDirectory={
+              supportsDirectoryAccess() ? handlePickDirectory : undefined
+            }
+          />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+      </div>
+    );
+  }
 
+  return (
+    <div className="flex h-dvh max-h-dvh overflow-hidden bg-background">
+      <FileTree
+        project={project}
+        activePath={openFile}
+        onSelectFile={setOpenFile}
+        onClear={handleRemove}
+      />
+      {openFile && (
+        <FileViewer
+          project={project}
+          path={openFile}
+          onClose={() => setOpenFile(null)}
+        />
+      )}
+      <main
+        className={cn(
+          'flex min-h-0 flex-col gap-6 px-4 py-8',
+          // Centered readable column by default; an even split when a file is
+          // open (basis-0 + flex-1 so it and the viewer divide the leftover
+          // space equally, regardless of the fixed-width tree).
+          openFile ? 'min-w-0 flex-1 basis-0' : 'mx-auto w-full max-w-2xl',
+        )}
+      >
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <MessageList
           messages={messages}
-          emptyText={
-            project
-              ? 'Ask a question about your project.'
-              : 'Upload a project folder to get started.'
-          }
-          // Only offer the inline save when a project is loaded.
-          onSaveReadme={project ? handleSaveReadme : undefined}
+          emptyText="Ask a question about your project."
+          onSaveReadme={handleSaveReadme}
           saveStatus={saveStatus}
         />
 
         <ChatInput
           onSend={handleSend}
-          disabled={!project || busy}
-          placeholder={
-            project ? 'Ask about your project...' : 'Upload a project first'
-          }
+          disabled={busy}
+          placeholder="Ask about your project..."
         />
       </main>
     </div>
