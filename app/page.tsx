@@ -206,8 +206,8 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-background">
-      <main className="flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-8">
+    <div className="flex h-dvh max-h-dvh flex-col items-center overflow-hidden bg-background">
+      <main className="flex w-full min-h-0 max-w-2xl flex-1 flex-col gap-6 px-4 py-8">
         <FileUpload
           project={project}
           onFiles={handleFiles}
