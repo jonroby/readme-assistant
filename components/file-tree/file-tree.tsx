@@ -1,32 +1,38 @@
 'use client';
 
 import type { Project } from '@/lib/project';
-import { buildFileTree } from './tree';
-import { TreeRow } from './tree-row';
+import { ClearProjectDialog } from './clear-project-dialog';
+import { TreeList } from './tree-list';
 
 type FileTreeProps = {
   project: Project;
   activePath: string | null;
   onSelectFile: (path: string) => void;
+  onClear: () => void;
 };
 
 /**
- * Read-only file tree for the active project, shown in the left sidebar.
- * Folders expand/collapse; clicking a file opens it in the viewer.
+ * Left sidebar for the active project: a scrollable file tree with a
+ * "Clear project" action pinned at the bottom.
  */
-export function FileTree({ project, activePath, onSelectFile }: FileTreeProps) {
-  const nodes = buildFileTree(project.files);
+export function FileTree({
+  project,
+  activePath,
+  onSelectFile,
+  onClear,
+}: FileTreeProps) {
   return (
-    <ul className="text-sm">
-      {nodes.map((node) => (
-        <TreeRow
-          key={node.path}
-          node={node}
-          depth={0}
+    <aside className="flex w-64 shrink-0 flex-col border-r">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <TreeList
+          project={project}
           activePath={activePath}
           onSelectFile={onSelectFile}
         />
-      ))}
-    </ul>
+      </div>
+      <div className="border-t p-3">
+        <ClearProjectDialog onConfirm={onClear} />
+      </div>
+    </aside>
   );
 }

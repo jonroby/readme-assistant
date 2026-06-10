@@ -6,7 +6,7 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
-import { FileUpload } from '@/components/file-upload';
+import { Dropzone } from '@/components/dropzone';
 import { FileTree } from '@/components/file-tree';
 import { FileViewer } from '@/components/file-viewer';
 import { MessageList } from '@/components/message-list';
@@ -212,18 +212,33 @@ export default function Home() {
     sendMessage({ text });
   };
 
+  // No project yet: a single centered prompt to upload one. Picking a folder
+  // reveals the workspace (tree | viewer | chat).
+  if (!project) {
+    return (
+      <div className="flex h-dvh max-h-dvh items-center justify-center overflow-hidden bg-background p-4">
+        <div className="flex w-full max-w-md flex-col items-center gap-4">
+          <Dropzone
+            onFiles={handleFiles}
+            onPickDirectory={
+              supportsDirectoryAccess() ? handlePickDirectory : undefined
+            }
+          />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-dvh max-h-dvh overflow-hidden bg-background">
-      {project && (
-        <aside className="w-64 shrink-0 overflow-y-auto border-r p-3">
-          <FileTree
-            project={project}
-            activePath={openFile}
-            onSelectFile={setOpenFile}
-          />
-        </aside>
-      )}
-      {project && openFile && (
+      <FileTree
+        project={project}
+        activePath={openFile}
+        onSelectFile={setOpenFile}
+        onClear={handleRemove}
+      />
+      {openFile && (
         <FileViewer
           project={project}
           path={openFile}
@@ -239,35 +254,19 @@ export default function Home() {
           openFile ? 'min-w-0 flex-1 basis-0' : 'mx-auto w-full max-w-2xl',
         )}
       >
-        <FileUpload
-          project={project}
-          onFiles={handleFiles}
-          onPickDirectory={
-            supportsDirectoryAccess() ? handlePickDirectory : undefined
-          }
-          onRemove={handleRemove}
-        />
-
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <MessageList
           messages={messages}
-          emptyText={
-            project
-              ? 'Ask a question about your project.'
-              : 'Upload a project folder to get started.'
-          }
-          // Only offer the inline save when a project is loaded.
-          onSaveReadme={project ? handleSaveReadme : undefined}
+          emptyText="Ask a question about your project."
+          onSaveReadme={handleSaveReadme}
           saveStatus={saveStatus}
         />
 
         <ChatInput
           onSend={handleSend}
-          disabled={!project || busy}
-          placeholder={
-            project ? 'Ask about your project...' : 'Upload a project first'
-          }
+          disabled={busy}
+          placeholder="Ask about your project..."
         />
       </main>
     </div>
