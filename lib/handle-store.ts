@@ -9,12 +9,23 @@ const DB_NAME = 'readme-assistant';
 const STORE = 'handles';
 const KEY = 'project-dir';
 
+// TEMP debug logging — remove once the prod handle-persistence bug is fixed.
+const log = (...args: unknown[]) => console.log('[handle-store]', ...args);
+const err = (...args: unknown[]) => console.error('[handle-store]', ...args);
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onupgradeneeded = () => {
+      log('onupgradeneeded — creating store');
+      req.result.createObjectStore(STORE);
+    };
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => {
+      err('openDb error', req.error);
+      reject(req.error);
+    };
+    req.onblocked = () => err('openDb BLOCKED');
   });
 }
 
@@ -27,21 +38,47 @@ function tx<T>(
       new Promise<T>((resolve, reject) => {
         const request = run(db.transaction(STORE, mode).objectStore(STORE));
         request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => {
+          err('tx request error', request.error);
+          reject(request.error);
+        };
       }),
   );
 }
 
-export function saveHandle(handle: DirectoryHandle): Promise<unknown> {
-  return tx('readwrite', (store) => store.put(handle, KEY));
+export async function saveHandle(handle: DirectoryHandle): Promise<unknown> {
+  log('saveHandle ->', handle?.name);
+  try {
+    const r = await tx('readwrite', (store) => store.put(handle, KEY));
+    log('saveHandle OK');
+    return r;
+  } catch (e) {
+    err('saveHandle FAILED', e);
+    throw e;
+  }
 }
 
-export function loadHandle(): Promise<DirectoryHandle | undefined> {
-  return tx<DirectoryHandle | undefined>('readonly', (store) =>
-    store.get(KEY),
-  );
+export async function loadHandle(): Promise<DirectoryHandle | undefined> {
+  try {
+    const r = await tx<DirectoryHandle | undefined>('readonly', (store) =>
+      store.get(KEY),
+    );
+    log('loadHandle ->', r ? r.name : 'undefined');
+    return r;
+  } catch (e) {
+    err('loadHandle FAILED', e);
+    return undefined;
+  }
 }
 
-export function clearHandle(): Promise<unknown> {
-  return tx('readwrite', (store) => store.delete(KEY));
+export async function clearHandle(): Promise<unknown> {
+  log('clearHandle');
+  try {
+    const r = await tx('readwrite', (store) => store.delete(KEY));
+    log('clearHandle OK');
+    return r;
+  } catch (e) {
+    err('clearHandle FAILED', e);
+    throw e;
+  }
 }

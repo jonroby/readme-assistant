@@ -104,6 +104,7 @@ export default function Home() {
   useEffect(() => {
     setProject(loadProject());
     loadHandle().then((handle) => {
+      console.log('[page] restore: loadHandle ->', handle?.name ?? 'none');
       if (handle) setDirHandle(handle);
     });
   }, []);
@@ -126,7 +127,9 @@ export default function Home() {
     setError(null);
     try {
       const handle = await pickDirectory();
+      console.log('[page] picked dir:', handle?.name);
       if (!(await ensurePermission(handle))) {
+        console.warn('[page] ensurePermission denied at pick');
         setError('Permission to access the folder was denied.');
         return;
       }
@@ -135,22 +138,31 @@ export default function Home() {
       await saveHandle(handle);
       setProject(next);
       setDirHandle(handle);
+      console.log('[page] pick complete; dirHandle set');
     } catch (e) {
       // AbortError = user cancelled the folder picker; not an error.
       if (e instanceof DOMException && e.name === 'AbortError') return;
+      console.error('[page] handlePickDirectory failed', e);
       setError(e instanceof Error ? e.message : 'Failed to read folder.');
     }
   };
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
     stop();
     clearProject();
-    clearHandle();
     setProject(null);
     setDirHandle(null);
     setMessages([]);
     setStagedReadme(null);
     setSaveStatus(null);
+    // Await the IndexedDB delete and surface failures — a swallowed error here
+    // is the suspected reason the folder reappears on refresh after X-ing out.
+    try {
+      await clearHandle();
+      console.log('[page] handleRemove: clearHandle done');
+    } catch (e) {
+      console.error('[page] handleRemove: clearHandle failed', e);
+    }
   };
 
   // Runs on a real click (the gesture both the picker and requestPermission
@@ -158,15 +170,20 @@ export default function Home() {
   // otherwise we fall back to the save-file dialog.
   const handleSaveReadme = async () => {
     if (!stagedReadme) return;
+    console.log('[page] save clicked; dirHandle =', dirHandle?.name ?? 'NULL');
     if (dirHandle) {
       try {
-        if (!(await ensurePermission(dirHandle))) {
+        const perm = await ensurePermission(dirHandle);
+        console.log('[page] ensurePermission(write) ->', perm);
+        if (!perm) {
           setSaveStatus('Permission to write to the folder was denied.');
           return;
         }
         await writeFileToDirectory(dirHandle, 'README.md', stagedReadme);
+        console.log('[page] wrote README into', dirHandle.name);
         setSaveStatus('README written to the project folder.');
       } catch (e) {
+        console.error('[page] write into folder failed', e);
         setSaveStatus(
           `Failed to write README: ${e instanceof Error ? e.message : 'unknown error'}`,
         );

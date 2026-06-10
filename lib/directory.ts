@@ -108,6 +108,10 @@ export async function writeFileToDirectory(
  */
 export async function ensurePermission(dir: DirectoryHandle): Promise<boolean> {
   const opts: PermissionDescriptor = { mode: 'readwrite' };
-  if ((await dir.queryPermission(opts)) === 'granted') return true;
-  return (await dir.requestPermission(opts)) === 'granted';
+  const queried = await dir.queryPermission(opts);
+  console.log('[directory] queryPermission(readwrite) ->', queried);
+  if (queried === 'granted') return true;
+  const requested = await dir.requestPermission(opts);
+  console.log('[directory] requestPermission(readwrite) ->', requested);
+  return requested === 'granted';
 }
