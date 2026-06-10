@@ -3,9 +3,15 @@
 import type { UIMessage } from 'ai';
 import Markdown from 'react-markdown';
 import { stripOuterFence } from '@/agent/strip-fence';
+import { Button } from '@/components/ui/button';
 
 type ChatMessageProps = {
   message: UIMessage;
+  // Save the README staged by this message. Present only when the parent can
+  // perform the write (a project is loaded); the button stays inline with the
+  // message that produced the draft, preserving its place in the conversation.
+  onSaveReadme?: (content: string) => void;
+  saveStatus?: string;
 };
 
 /** One-line "what the agent is doing" label for a tool-call part. */
@@ -28,8 +34,22 @@ function toolActivityLabel(part: {
   }
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  onSaveReadme,
+  saveStatus,
+}: ChatMessageProps) {
   const isUser = message.role === 'user';
+
+  // The README this message staged, if any: the content the model passed to
+  // writeReadme. The Save button renders inline below, so it travels with this
+  // message instead of being pinned to the bottom of the conversation.
+  const writeReadme = message.parts.find(
+    (p) => p.type === 'tool-writeReadme',
+  ) as { input?: { content?: string } } | undefined;
+  const stagedReadme = writeReadme?.input?.content
+    ? stripOuterFence(writeReadme.input.content)
+    : null;
 
   // Hide assistant bubbles that have no visible content yet (e.g. only a
   // tool-call in flight) — the tool-call line below renders separately.
@@ -66,6 +86,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
             <Markdown>{assistantText}</Markdown>
           </div>
         ))}
+      {stagedReadme && onSaveReadme && (
+        <div className="flex items-center gap-3">
+          <Button onClick={() => onSaveReadme(stagedReadme)}>
+            Save README to disk
+          </Button>
+          {saveStatus && (
+            <span className="text-sm text-muted-foreground">{saveStatus}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

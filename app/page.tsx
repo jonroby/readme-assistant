@@ -35,10 +35,7 @@ import {
   type ListFilesInput,
   type ReadFileInput,
   type SearchFilesInput,
-  type WriteReadmeInput,
 } from '@/agent/tools';
-import { Button } from '@/components/ui/button';
-import { stripOuterFence } from '@/agent/strip-fence';
 
 export default function Home() {
   const [project, setProject] = useState<Project | null>(null);
@@ -47,10 +44,9 @@ export default function Home() {
   // so we can write the README straight back into the same folder, and persisted
   // in IndexedDB so it survives reloads. Null when using the upload fallback.
   const [dirHandle, setDirHandle] = useState<DirectoryHandle | null>(null);
-  // README content the model staged via writeReadme, awaiting a user click to
-  // write to disk (showSaveFilePicker needs a gesture — see saveReadmeToDisk).
-  const [stagedReadme, setStagedReadme] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  // Result of the last save attempt, keyed by the message whose README was
+  // saved — so the status shows next to that message's inline Save button.
+  const [saveStatus, setSaveStatus] = useState<Record<string, string>>({});
 
   // The readFile tool runs on the client, so onToolCall needs the latest
   // project. A ref keeps it current without re-creating the chat.
@@ -112,10 +108,8 @@ export default function Home() {
             ),
           });
         } else if (toolCall.toolName === 'writeReadme') {
-          const { content } = toolCall.input as WriteReadmeInput;
-          // Stage the README for the user to save; the disk write needs a click.
-          setStagedReadme(stripOuterFence(content));
-          setSaveStatus(null);
+          // The staged README lives on the message (its writeReadme tool part),
+          // so the Save button can render inline; nothing to stash here.
           addToolOutput({
             tool: 'writeReadme',
             toolCallId: toolCall.toolCallId,
@@ -178,31 +172,32 @@ export default function Home() {
     setProject(null);
     setDirHandle(null);
     setMessages([]);
-    setStagedReadme(null);
-    setSaveStatus(null);
+    setSaveStatus({});
   };
 
   // Runs on a real click (the gesture both the picker and requestPermission
   // need). With a directory handle we write straight into the project folder;
-  // otherwise we fall back to the save-file dialog.
-  const handleSaveReadme = async () => {
-    if (!stagedReadme) return;
+  // otherwise we fall back to the save-file dialog. Status is keyed by the
+  // message whose inline button was clicked.
+  const handleSaveReadme = async (messageId: string, content: string) => {
+    const report = (status: string) =>
+      setSaveStatus((prev) => ({ ...prev, [messageId]: status }));
     if (dirHandle) {
       try {
         if (!(await ensurePermission(dirHandle))) {
-          setSaveStatus('Permission to write to the folder was denied.');
+          report('Permission to write to the folder was denied.');
           return;
         }
-        await writeFileToDirectory(dirHandle, 'README.md', stagedReadme);
-        setSaveStatus('README written to the project folder.');
+        await writeFileToDirectory(dirHandle, 'README.md', content);
+        report('README written to the project folder.');
       } catch (e) {
-        setSaveStatus(
+        report(
           `Failed to write README: ${e instanceof Error ? e.message : 'unknown error'}`,
         );
       }
       return;
     }
-    setSaveStatus(await saveReadmeToDisk(stagedReadme));
+    report(await saveReadmeToDisk(content));
   };
 
   const handleSend = (text: string) => {
@@ -231,16 +226,10 @@ export default function Home() {
               ? 'Ask a question about your project.'
               : 'Upload a project folder to get started.'
           }
+          // Only offer the inline save when a project is loaded.
+          onSaveReadme={project ? handleSaveReadme : undefined}
+          saveStatus={saveStatus}
         />
-
-        {stagedReadme && (
-          <div className="flex items-center gap-3">
-            <Button onClick={handleSaveReadme}>Save README to disk</Button>
-            {saveStatus && (
-              <span className="text-sm text-muted-foreground">{saveStatus}</span>
-            )}
-          </div>
-        )}
 
         <ChatInput
           onSend={handleSend}
