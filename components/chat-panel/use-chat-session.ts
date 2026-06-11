@@ -26,8 +26,8 @@ type UseChatSession = {
   messages: UIMessage[];
   sendMessage: (message: { text: string }) => void;
   busy: boolean;
-  /** The last request error (model/transport failure), or null. */
   error: Error | null;
+  retry: () => void;
   /**
    * Inject a synthetic user message into the conversation — a real
    * `{ role: 'user', text }` the model reads as context, recording an
@@ -35,7 +35,6 @@ type UseChatSession = {
    * the UI rather than by typing. Rendered as a chip, not a chat bubble.
    */
   addCustomMessage: (text: string) => void;
-  /** Clear the conversation from state and storage (e.g. on project removal). */
   reset: () => void;
 };
 
@@ -69,32 +68,18 @@ export function useChatSession(
     addToolOutput,
     status,
     error,
+    regenerate,
   } = useChat({
-      // Surfaces request failures (model/transport errors — a dropped network
-      // call, a 5xx, a rate limit). The SDK already exposes `error`; we log
-      // here for debugging and render `error` in the chat for the user.
       onError(err) {
         console.error('Chat request failed:', err);
       },
-      // Default transport: the SDK sends the full message history to /api/chat
-      // (injected user-action messages included — they're real messages the
-      // model should see). The
-      // server always uses the README prompt since the chat only exists once a
-      // project is loaded, so no per-request body shaping is needed.
       transport: new DefaultChatTransport({ api: '/api/chat' }),
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-      // All tools resolve on the client, synchronously, through the shared
-      // resolveToolCall dispatcher (the same one the eval harness uses).
       onToolCall({ toolCall }) {
         const name = toolCall.toolName as ToolName;
 
-        // proposeReadme also opens the staged draft in the viewer — the one
-        // side effect beyond returning a tool result.
         if (name === 'proposeReadme') {
           const { content } = toolCall.input as ProposeReadmeInput;
-          // onProposeReadme has a stable identity (see useApp.openDraft), so
-          // calling it directly from this once-captured callback is safe — no
-          // ref needed.
           onProposeReadme(stripOuterFence(content));
         }
 
@@ -155,6 +140,7 @@ export function useChatSession(
     sendMessage,
     busy,
     error: error ?? null,
+    retry: regenerate,
     addCustomMessage,
     reset,
   };

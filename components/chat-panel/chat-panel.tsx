@@ -4,6 +4,7 @@ import { forwardRef, useImperativeHandle } from 'react';
 import type { Project } from '@/lib/project';
 import { ChatMessageList } from '@/components/chat-message-list';
 import { ChatInput } from '@/components/chat-input';
+import { Button } from '@/components/ui/button';
 import { useChatSession } from './use-chat-session';
 
 /**
@@ -55,9 +56,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
         />
 
         {chat.error && (
-          <p className="text-sm text-destructive">
-            Something went wrong with that request. Please try again.
-          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-destructive">
+              Something went wrong with that request.
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => chat.retry()}
+              disabled={chat.busy}
+            >
+              Retry
+            </Button>
+          </div>
         )}
 
         <ChatInput
