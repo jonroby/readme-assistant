@@ -10,7 +10,7 @@ export function stripOuterFence(text: string): string {
   // around it) when it's tagged `markdown`/`md` or has no language tag.
   return text.replace(
     /```(?:markdown|md)?[ \t]*\n([\s\S]*?)\n?```/g,
-    (whole, inner, offset: number) => {
+    (whole, inner) => {
       const lang = whole.slice(3, whole.indexOf('\n')).trim().toLowerCase();
       // Only unwrap markdown-tagged or untagged fences; keep real code fences.
       if (lang && lang !== 'markdown' && lang !== 'md') return whole;

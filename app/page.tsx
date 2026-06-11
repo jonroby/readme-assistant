@@ -68,12 +68,19 @@ export default function Home() {
   } | null>(null);
 
   // The readFile tool runs on the client, so onToolCall needs the latest
-  // project. A ref keeps it current without re-creating the chat.
+  // project. A ref keeps it current without re-creating the chat; synced in an
+  // effect (not during render) so the chat callbacks always read fresh state.
   const projectRef = useRef<Project | null>(null);
-  projectRef.current = project;
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
 
   const { messages, sendMessage, setMessages, stop, addToolOutput, status } =
     useChat({
+      // The transport's prepareSendMessagesRequest reads projectRef.current at
+      // request time (a deferred callback), not during render. The ref exists
+      // precisely to feed the chat fresh state without re-creating it.
+      // eslint-disable-next-line react-hooks/refs -- ref read in a deferred callback, not render
       transport: new DefaultChatTransport({
         api: '/api/chat',
         // Runs on every request (initial + tool-result resume). We only signal
@@ -147,7 +154,12 @@ export default function Home() {
   // Restore a previously loaded session from localStorage: project file
   // contents, the conversation, and (from IndexedDB) the directory handle for
   // write-back. The handle's permission re-grant is deferred to a user click.
+  // This is a mount-time sync from an external store (localStorage), which must
+  // run in an effect because it isn't available during SSR — and the
+  // conversation restore goes through useChat's setMessages, so it can't move
+  // to a lazy state initializer. setState-in-effect is the correct pattern here.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time restore from localStorage; see above
     setProject(loadProject());
     const saved = loadConversation();
     if (saved.length) setMessages(saved);
