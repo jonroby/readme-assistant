@@ -2,11 +2,10 @@
 
 import { FolderPicker } from '@/components/folder-picker';
 import { FileTree } from '@/components/file-tree';
-import { FileViewer, DraftViewer } from '@/components/file-viewer';
+import { ViewerPanel } from '@/components/viewer-panel';
 import { ChatPanel } from '@/components/chat-panel';
 import { OverwriteReadmeDialog } from '@/components/overwrite-readme-dialog';
 import { cn } from '@/lib/utils';
-import { findReadme } from '@/lib/project';
 import { useApp } from './hooks/use-app';
 
 export function Home() {
@@ -47,18 +46,14 @@ export function Home() {
         onSelectFile={setOpenFile}
         onClear={clear}
       />
-      {draft !== null ? (
-        <DraftViewer
-          draft={draft}
-          // Existing README to diff the draft against (null if none → no diff).
-          base={findReadme(project)?.content ?? null}
-          onClose={closeViewer}
-          onSave={saver.save}
-          saveStatus={saver.saveStatus}
-        />
-      ) : openFile !== null ? (
-        <FileViewer project={project} path={openFile} onClose={closeViewer} />
-      ) : null}
+      <ViewerPanel
+        project={project}
+        openFile={openFile}
+        draft={draft}
+        onClose={closeViewer}
+        onSave={saver.save}
+        saveStatus={saver.saveStatus}
+      />
       <main
         className={cn(
           'flex min-h-0 flex-col gap-6 px-4 py-8',
