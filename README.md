@@ -26,9 +26,6 @@ against the existing one) and save it straight back to the folder on disk.
 It's intentionally scoped to one job — generating and improving a README — and
 does it end to end: discover → read → draft → review → save.
 
-For how it works under the hood — the load step, the tool loop, the review/save
-flow, and the design decisions behind them — see [`NOTES.md`](./NOTES.md).
-
 ## Prerequisites
 
 - Node.js 20.9 or newer (required by Next.js 16)
