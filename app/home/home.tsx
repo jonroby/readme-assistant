@@ -1,6 +1,6 @@
 'use client';
 
-import { FolderPicker } from '@/components/folder-picker';
+import { WelcomeScreen } from '@/components/welcome-screen';
 import { FileTree } from '@/components/file-tree';
 import { ViewerPanel } from '@/components/viewer-panel';
 import { ChatPanel } from '@/components/chat-panel';
@@ -15,27 +15,10 @@ export function Home() {
   // The center viewer is open for either a real file or a staged README draft.
   const viewerOpen = openFile !== null || draft !== null;
 
-  // No project yet: a single centered prompt to upload one. Picking a folder
+  // No project yet: the welcome screen with a folder picker. Picking a folder
   // reveals the workspace (tree | viewer | chat).
   if (!project) {
-    return (
-      <div className="flex h-dvh max-h-dvh items-center justify-center overflow-hidden bg-background p-4">
-        <div className="flex w-full max-w-md flex-col items-center gap-6">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              README Assistant
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Add a project folder to get started. The assistant reads your
-              files and helps you write or improve its README, then saves it
-              back to disk.
-            </p>
-          </div>
-          <FolderPicker onPickFolder={pickFolder} />
-          {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
-      </div>
-    );
+    return <WelcomeScreen onPickFolder={pickFolder} error={error} />;
   }
 
   return (
