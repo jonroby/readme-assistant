@@ -1,21 +1,26 @@
 'use client';
 
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import type { Project } from '@/lib/project';
 import type { SaveResult } from '@/app/home/hooks/use-readme-saver';
 import { Button } from '@/components/ui/button';
+import { DiffView } from './diff-view';
 import { useHighlightedCode } from './use-highlighted-code';
 
 // The viewer shows EITHER a real project file (by path) or a staged README
 // draft (content held in app state, not on disk yet). Only the draft carries
-// save controls — that is the one thing the user can write back to disk.
+// save controls — that is the one thing the user can write back to disk. A
+// draft may also carry `base`: the existing README's content, so the user can
+// toggle a diff of what saving would change.
 type FileViewerProps = {
   project: Project;
   onClose: () => void;
 } & (
-  | { path: string; draft?: never; onSave?: never; saveStatus?: never }
+  | { path: string; draft?: never; base?: never; onSave?: never; saveStatus?: never }
   | {
       draft: string;
+      base: string | null;
       path?: never;
       onSave: (content: string) => void;
       saveStatus: SaveResult | null;
@@ -35,10 +40,13 @@ export function FileViewer({
   project,
   path,
   draft,
+  base,
   onClose,
   onSave,
   saveStatus,
 }: FileViewerProps) {
+  const [showDiff, setShowDiff] = useState(false);
+
   // A draft renders its own content under a synthetic markdown path; a real
   // file is looked up from the project by path.
   const isDraft = draft !== undefined;
@@ -48,6 +56,10 @@ export function FileViewer({
     : (project.files.find((f) => f.path === path)?.content ?? null);
   const html = useHighlightedCode(content, isDraft ? 'README.md' : path!);
   const saved = saveStatus?.ok === true;
+  // A diff is only meaningful against an existing README; a brand-new one has
+  // nothing to compare to, so the toggle is hidden.
+  const canDiff = isDraft && base != null;
+  const diffing = canDiff && showDiff;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col border-r">
@@ -61,6 +73,15 @@ export function FileViewer({
                 <span className="text-xs text-destructive">
                   {saveStatus.message}
                 </span>
+              )}
+              {canDiff && (
+                <Button
+                  size="sm"
+                  variant={diffing ? 'secondary' : 'outline'}
+                  onClick={() => setShowDiff((v) => !v)}
+                >
+                  {diffing ? 'Hide diff' : 'Diff'}
+                </Button>
               )}
               <Button
                 size="sm"
@@ -81,7 +102,9 @@ export function FileViewer({
           </button>
         </div>
       </div>
-      {content === null ? (
+      {diffing ? (
+        <DiffView base={base!} next={draft!} />
+      ) : content === null ? (
         <pre className="min-h-0 flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed">
           {`File not found: ${displayPath}`}
         </pre>

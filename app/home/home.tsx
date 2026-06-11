@@ -7,6 +7,7 @@ import { MessageList } from '@/components/message-list';
 import { ChatInput } from '@/components/chat-input';
 import { OverwriteReadmeDialog } from '@/components/overwrite-readme-dialog';
 import { cn } from '@/lib/utils';
+import { findReadme } from '@/lib/project';
 import { useApp } from './hooks/use-app';
 
 export function Home() {
@@ -55,6 +56,8 @@ export function Home() {
         <FileViewer
           project={project}
           draft={draft}
+          // Existing README to diff the draft against (null if none → no diff).
+          base={findReadme(project)?.content ?? null}
           onClose={closeViewer}
           onSave={saver.save}
           saveStatus={saver.saveStatus}
