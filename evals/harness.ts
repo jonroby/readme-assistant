@@ -82,9 +82,9 @@ export async function runAgent(
 
   const result = await generateText({
     model: openai('gpt-4o'),
-    // Derived, not hardcoded: matches the app's `hasProject` so a future
-    // no-project eval gets the same (undefined) prompt the app would.
-    system: buildSystemPrompt(project != null),
+    // Same system prompt as the app — the chat always operates on a loaded
+    // project, so the prompt is unconditional.
+    system: buildSystemPrompt(),
     prompt: userPrompt,
     tools: evalTools,
     stopWhen: stepCountIs(6),

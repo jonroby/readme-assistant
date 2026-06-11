@@ -74,27 +74,11 @@ export function useChatSession(
       onError(err) {
         console.error('Chat request failed:', err);
       },
-      // prepareSendMessagesRequest reads projectRef.current at request time (a
-      // deferred callback), not during render — the ref feeds the chat fresh
-      // state without re-creating it.
-      // eslint-disable-next-line react-hooks/refs -- ref read in a deferred callback, not render
-      transport: new DefaultChatTransport({
-        api: '/api/chat',
-        // Runs on every request. We only signal whether a project is loaded;
-        // the model discovers paths via listFiles.
-        prepareSendMessagesRequest({ messages, body }) {
-          return {
-            body: {
-              ...body,
-              // Markers ARE forwarded: they carry real text (e.g. that the user
-              // saved the README) the model needs as context. They render as
-              // chips in the UI but read as plain messages to the model.
-              messages,
-              hasProject: !!projectRef.current?.files.length,
-            },
-          };
-        },
-      }),
+      // Default transport: the SDK sends the full message history to /api/chat
+      // (markers included — they're real messages the model should see). The
+      // server always uses the README prompt since the chat only exists once a
+      // project is loaded, so no per-request body shaping is needed.
+      transport: new DefaultChatTransport({ api: '/api/chat' }),
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
       // All tools resolve on the client, synchronously, through the shared
       // resolveToolCall dispatcher (the same one the eval harness uses).
