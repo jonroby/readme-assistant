@@ -17,9 +17,5 @@ export { runFindExistingReadme } from './find-existing-readme';
 export { runListFiles, type ListFilesInput } from './list-files';
 export { runReadFile, type ReadFileInput } from './read-file';
 export { runSearchFiles, type SearchFilesInput } from './search-files';
-export {
-  runProposeReadme,
-  saveReadmeToDisk,
-  type ProposeReadmeInput,
-} from './propose-readme';
+export { runProposeReadme, type ProposeReadmeInput } from './propose-readme';
 export { resolveToolCall, type ToolName, type ToolInputs } from './resolve';
