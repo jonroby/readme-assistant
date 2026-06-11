@@ -268,7 +268,17 @@ export default function Home() {
   if (!project) {
     return (
       <div className="flex h-dvh max-h-dvh items-center justify-center overflow-hidden bg-background p-4">
-        <div className="flex w-full max-w-md flex-col items-center gap-4">
+        <div className="flex w-full max-w-md flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              README Assistant
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Add a project folder to get started. The assistant reads your
+              files and helps you write or improve its README, then saves it
+              back to disk.
+            </p>
+          </div>
           <Dropzone
             onFiles={handleFiles}
             onPickDirectory={
