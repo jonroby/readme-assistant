@@ -2,7 +2,7 @@
 
 import { Dropzone } from '@/components/dropzone';
 import { FileTree } from '@/components/file-tree';
-import { FileViewer } from '@/components/file-viewer';
+import { FileViewer, DraftViewer } from '@/components/file-viewer';
 import { MessageList } from '@/components/message-list';
 import { ChatInput } from '@/components/chat-input';
 import { OverwriteReadmeDialog } from '@/components/overwrite-readme-dialog';
@@ -53,8 +53,7 @@ export function Home() {
         onClear={clear}
       />
       {draft !== null ? (
-        <FileViewer
-          project={project}
+        <DraftViewer
           draft={draft}
           // Existing README to diff the draft against (null if none → no diff).
           base={findReadme(project)?.content ?? null}
