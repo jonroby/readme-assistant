@@ -22,3 +22,4 @@ export {
   saveReadmeToDisk,
   type ProposeReadmeInput,
 } from './propose-readme';
+export { resolveToolCall, type ToolName, type ToolInputs } from './resolve';

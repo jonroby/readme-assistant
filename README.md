@@ -66,6 +66,19 @@ unit-tested with [Vitest](https://vitest.dev):
 npm test
 ```
 
+### Evals (tentative)
+
+A small, **tentative** set of behavior evals checks what the unit tests can't:
+whether the model calls the right tools for a given request (e.g. that
+"generate a README" actually stages a draft, and that a plain question does
+not). They run the real agent headlessly — the same tools, dispatcher, system
+prompt, and model as the app — against tiny fixture projects, and assert on the
+tool-call trajectory rather than exact wording.
+
+```bash
+npm run eval
+```
+
 ## Notes & limitations
 
 - Runs entirely in the browser: the project and conversation live in

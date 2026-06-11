@@ -9,19 +9,21 @@ import { z } from 'zod';
  */
 export const proposeReadmeTool = tool({
   description:
-    'Propose a finished README draft for the project. This STAGES the draft so ' +
-    'the user can review it and save it to disk with one click — it does NOT ' +
-    'write any file itself. Call this whenever the user wants a README ' +
-    'generated, created, written, or improved; showing the markdown in chat ' +
-    'alone does not stage it, so call this as well (if they only want to ' +
-    'discuss or review a draft, just show it in chat instead). ' +
-    'Before proposing from scratch, call findExistingReadme — if one exists, ' +
+    'Stage a finished README draft so the user can review it and save it to ' +
+    'disk with one click. It does NOT write any file itself. ' +
+    'You MUST call this for EVERY request to generate, create, write, update, ' +
+    'translate, or improve the README — for brand-new READMEs as well as edits. ' +
+    'Writing the README as text in your chat reply does not stage it and does ' +
+    'not satisfy the request; only this tool does. Do not skip it. ' +
+    'Before proposing a new one, call findExistingReadme — if one exists, ' +
     'improve it rather than discard it. ' +
     'Pass the complete README markdown as `content`: clear, well-structured ' +
     'markdown with a title, description, prerequisites, install, run/usage, ' +
     'and any project-specific sections. Keep it accurate to the actual code — ' +
-    'never invent commands or features not found in the files. After proposing ' +
-    'an edit to an existing README, briefly explain what you changed.',
+    'never invent commands or features not found in the files. ' +
+    'The draft opens in a preview panel beside the chat, so do NOT also paste ' +
+    'the full README into your reply — write only a brief one-line note (and, ' +
+    'when editing an existing README, a short summary of what changed).',
   inputSchema: z.object({
     content: z
       .string()

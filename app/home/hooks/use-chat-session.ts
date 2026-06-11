@@ -10,15 +10,10 @@ import {
 import type { Project } from '@/lib/project';
 import { stripOuterFence } from '@/agent/strip-fence';
 import {
-  runFindExistingReadme,
-  runListFiles,
-  runReadFile,
-  runSearchFiles,
-  runProposeReadme,
-  type ListFilesInput,
+  resolveToolCall,
   type ProposeReadmeInput,
-  type ReadFileInput,
-  type SearchFilesInput,
+  type ToolInputs,
+  type ToolName,
 } from '@/agent/tools';
 import {
   clearConversation,
@@ -94,52 +89,27 @@ export function useChatSession(
         },
       }),
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-      // All tools resolve on the client, synchronously.
+      // All tools resolve on the client, synchronously, through the shared
+      // resolveToolCall dispatcher (the same one the eval harness uses).
       onToolCall({ toolCall }) {
-        if (toolCall.toolName === 'findExistingReadme') {
-          addToolOutput({
-            tool: 'findExistingReadme',
-            toolCallId: toolCall.toolCallId,
-            output: runFindExistingReadme(projectRef.current),
-          });
-        } else if (toolCall.toolName === 'listFiles') {
-          addToolOutput({
-            tool: 'listFiles',
-            toolCallId: toolCall.toolCallId,
-            output: runListFiles(
-              toolCall.input as ListFilesInput,
-              projectRef.current,
-            ),
-          });
-        } else if (toolCall.toolName === 'searchFiles') {
-          addToolOutput({
-            tool: 'searchFiles',
-            toolCallId: toolCall.toolCallId,
-            output: runSearchFiles(
-              toolCall.input as SearchFilesInput,
-              projectRef.current,
-            ),
-          });
-        } else if (toolCall.toolName === 'readFile') {
-          addToolOutput({
-            tool: 'readFile',
-            toolCallId: toolCall.toolCallId,
-            output: runReadFile(
-              toolCall.input as ReadFileInput,
-              projectRef.current,
-            ),
-          });
-        } else if (toolCall.toolName === 'proposeReadme') {
-          // The staged README lives on the message (its proposeReadme tool
-          // part); also open it in the viewer so the user reads it there.
+        const name = toolCall.toolName as ToolName;
+
+        // proposeReadme also opens the staged draft in the viewer — the one
+        // side effect beyond returning a tool result.
+        if (name === 'proposeReadme') {
           const { content } = toolCall.input as ProposeReadmeInput;
           onProposeReadmeRef.current(stripOuterFence(content));
-          addToolOutput({
-            tool: 'proposeReadme',
-            toolCallId: toolCall.toolCallId,
-            output: runProposeReadme(),
-          });
         }
+
+        addToolOutput({
+          tool: name,
+          toolCallId: toolCall.toolCallId,
+          output: resolveToolCall(
+            name,
+            toolCall.input as ToolInputs[ToolName],
+            projectRef.current,
+          ),
+        });
       },
     });
 
