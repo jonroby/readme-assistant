@@ -12,8 +12,10 @@ import { FileViewer } from '@/components/file-viewer';
 import { MessageList } from '@/components/message-list';
 import { cn } from '@/lib/utils';
 import { ChatInput } from '@/components/chat-input';
+import { OverwriteReadmeDialog } from '@/components/overwrite-readme-dialog';
 import {
   clearProject,
+  findReadme,
   loadProject,
   readProject,
   saveProject,
@@ -58,14 +60,27 @@ export default function Home() {
   // Path of the file open in the viewer, or null. When set, the layout splits:
   // tree | file viewer | chat. Only one file is viewed at a time.
   const [openFile, setOpenFile] = useState<string | null>(null);
+  // A save awaiting overwrite confirmation. The directory-handle write replaces
+  // README.md in place with no OS dialog, so we confirm here when one exists.
+  const [pendingSave, setPendingSave] = useState<{
+    messageId: string;
+    content: string;
+  } | null>(null);
 
   // The readFile tool runs on the client, so onToolCall needs the latest
-  // project. A ref keeps it current without re-creating the chat.
+  // project. A ref keeps it current without re-creating the chat; synced in an
+  // effect (not during render) so the chat callbacks always read fresh state.
   const projectRef = useRef<Project | null>(null);
-  projectRef.current = project;
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
 
   const { messages, sendMessage, setMessages, stop, addToolOutput, status } =
     useChat({
+      // The transport's prepareSendMessagesRequest reads projectRef.current at
+      // request time (a deferred callback), not during render. The ref exists
+      // precisely to feed the chat fresh state without re-creating it.
+      // eslint-disable-next-line react-hooks/refs -- ref read in a deferred callback, not render
       transport: new DefaultChatTransport({
         api: '/api/chat',
         // Runs on every request (initial + tool-result resume). We only signal
@@ -139,7 +154,12 @@ export default function Home() {
   // Restore a previously loaded session from localStorage: project file
   // contents, the conversation, and (from IndexedDB) the directory handle for
   // write-back. The handle's permission re-grant is deferred to a user click.
+  // This is a mount-time sync from an external store (localStorage), which must
+  // run in an effect because it isn't available during SSR — and the
+  // conversation restore goes through useChat's setMessages, so it can't move
+  // to a lazy state initializer. setState-in-effect is the correct pattern here.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time restore from localStorage; see above
     setProject(loadProject());
     const saved = loadConversation();
     if (saved.length) setMessages(saved);
@@ -200,29 +220,42 @@ export default function Home() {
     setOpenFile(null);
   };
 
-  // Runs on a real click (the gesture both the picker and requestPermission
-  // need). With a directory handle we write straight into the project folder;
-  // otherwise we fall back to the save-file dialog. Status is keyed by the
-  // message whose inline button was clicked.
-  const handleSaveReadme = async (messageId: string, content: string) => {
+  // The actual directory-handle write. Replaces README.md in place (no OS
+  // dialog), so callers gate it behind an overwrite confirm when one exists.
+  const writeReadmeToFolder = async (messageId: string, content: string) => {
+    if (!dirHandle) return;
     const report = (status: string) =>
       setSaveStatus((prev) => ({ ...prev, [messageId]: status }));
-    if (dirHandle) {
-      try {
-        if (!(await ensurePermission(dirHandle))) {
-          report('Permission to write to the folder was denied.');
-          return;
-        }
-        await writeFileToDirectory(dirHandle, 'README.md', content);
-        report('README written to the project folder.');
-      } catch (e) {
-        report(
-          `Failed to write README: ${e instanceof Error ? e.message : 'unknown error'}`,
-        );
+    try {
+      if (!(await ensurePermission(dirHandle))) {
+        report('Permission to write to the folder was denied.');
+        return;
       }
+      await writeFileToDirectory(dirHandle, 'README.md', content);
+      report('README written to the project folder.');
+    } catch (e) {
+      report(
+        `Failed to write README: ${e instanceof Error ? e.message : 'unknown error'}`,
+      );
+    }
+  };
+
+  // Runs on a real click (the gesture both the picker and requestPermission
+  // need). With a directory handle we write straight into the project folder —
+  // confirming first if that would overwrite an existing README (the handle
+  // write has no OS dialog). Otherwise we fall back to the save-file dialog,
+  // which prompts on overwrite itself.
+  const handleSaveReadme = async (messageId: string, content: string) => {
+    if (dirHandle) {
+      if (project && findReadme(project)) {
+        setPendingSave({ messageId, content });
+        return;
+      }
+      await writeReadmeToFolder(messageId, content);
       return;
     }
-    report(await saveReadmeToDisk(content));
+    const status = await saveReadmeToDisk(content);
+    setSaveStatus((prev) => ({ ...prev, [messageId]: status }));
   };
 
   const handleSend = (text: string) => {
@@ -235,7 +268,17 @@ export default function Home() {
   if (!project) {
     return (
       <div className="flex h-dvh max-h-dvh items-center justify-center overflow-hidden bg-background p-4">
-        <div className="flex w-full max-w-md flex-col items-center gap-4">
+        <div className="flex w-full max-w-md flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              README Assistant
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Add a project folder to get started. The assistant reads your
+              files and helps you write or improve its README, then saves it
+              back to disk.
+            </p>
+          </div>
           <Dropzone
             onFiles={handleFiles}
             onPickDirectory={
@@ -287,6 +330,18 @@ export default function Home() {
           placeholder="Ask about your project..."
         />
       </main>
+      <OverwriteReadmeDialog
+        open={pendingSave !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingSave(null);
+        }}
+        onConfirm={() => {
+          if (pendingSave) {
+            void writeReadmeToFolder(pendingSave.messageId, pendingSave.content);
+            setPendingSave(null);
+          }
+        }}
+      />
     </div>
   );
 }
