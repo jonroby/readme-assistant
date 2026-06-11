@@ -16,6 +16,8 @@ type UseProject = {
   error: string | null;
   /** Pick a folder, giving a project with a writable handle for write-back. */
   pickFolder: () => Promise<void>;
+  /** Replace the loaded project, persisting it (e.g. after saving a README). */
+  updateProject: (next: Project) => void;
   /** Clear the project from state and storage. */
   clear: () => void;
 };
@@ -57,10 +59,18 @@ export function useProject(): UseProject {
     }
   };
 
+  // One door for replacing the loaded project: state + persistence stay in
+  // lockstep (mirrors pickFolder). saveProject re-splits it across localStorage
+  // (data) and IndexedDB (the handle).
+  const updateProject = (next: Project) => {
+    saveProject(next);
+    setProject(next);
+  };
+
   const clear = () => {
     clearProject();
     setProject(null);
   };
 
-  return { project, error, pickFolder, clear };
+  return { project, error, pickFolder, updateProject, clear };
 }

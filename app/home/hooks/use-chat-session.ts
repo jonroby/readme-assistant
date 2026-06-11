@@ -30,9 +30,16 @@ type UseChatSession = {
   messages: UIMessage[];
   sendMessage: (message: { text: string }) => void;
   busy: boolean;
+  /** Append a history marker to the timeline (not sent to the model). */
+  addMarker: (text: string) => void;
   /** Clear the conversation from state and storage (e.g. on project removal). */
   reset: () => void;
 };
+
+// A monotonic id for synthetic (non-model) messages we inject, so React keys
+// stay stable. Module-scoped counter — markers are few and the page is the only
+// caller; uniqueness within a session is all we need.
+let markerSeq = 0;
 
 /**
  * Owns the chat: the useChat instance, client-side tool resolution, and
@@ -72,7 +79,11 @@ export function useChatSession(
           return {
             body: {
               ...body,
-              messages,
+              // Drop our synthetic history markers — they're UI-only and would
+              // confuse convertToModelMessages on the server.
+              messages: messages.filter(
+                (m) => !m.parts.some((p) => p.type === 'data-marker'),
+              ),
               hasProject: !!projectRef.current?.files.length,
             },
           };
@@ -144,11 +155,26 @@ export function useChatSession(
     if (restored.current) saveConversation(messages);
   }, [messages]);
 
+  // Append a history marker (e.g. "Saved README.md to disk"). It's a synthetic
+  // assistant message carrying a single data-marker part — rendered distinctly
+  // and never sent to the model (we only forward real turns on the next send).
+  const addMarker = (text: string) => {
+    markerSeq += 1;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `marker-${markerSeq}`,
+        role: 'assistant',
+        parts: [{ type: 'data-marker', data: { text } }],
+      } as UIMessage,
+    ]);
+  };
+
   const reset = () => {
     stop();
     clearConversation();
     setMessages([]);
   };
 
-  return { messages, sendMessage, busy, reset };
+  return { messages, sendMessage, busy, addMarker, reset };
 }

@@ -22,10 +22,10 @@ function toolActivityLabel(part: ToolPart): string {
   }
 }
 
-/** A single tool-call activity line in the message timeline. */
+/** A single tool-call activity chip in the message timeline. */
 export function ToolActivity({ part }: { part: ToolPart }) {
   return (
-    <span className="text-xs text-muted-foreground">
+    <span className="inline-flex w-fit items-center rounded-full border bg-muted px-2.5 py-1 text-xs text-muted-foreground">
       {toolActivityLabel(part)}
     </span>
   );

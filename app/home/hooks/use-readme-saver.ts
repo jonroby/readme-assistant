@@ -29,8 +29,14 @@ type UseReadmeSaver = {
  * no OS dialog, so we confirm before replacing an existing README) and the
  * last save status. There is one draft open at a time, so the status is a
  * single value. Writes README.md in place via the project's handle.
+ *
+ * `onSaved` fires with the written content after a successful disk write, so
+ * the caller can reflect it into the in-memory project snapshot.
  */
-export function useReadmeSaver(project: Project | null): UseReadmeSaver {
+export function useReadmeSaver(
+  project: Project | null,
+  onSaved: (content: string) => void,
+): UseReadmeSaver {
   const [saveStatus, setSaveStatus] = useState<SaveResult | null>(null);
   const [pendingSave, setPendingSave] = useState<{ content: string } | null>(
     null,
@@ -49,6 +55,9 @@ export function useReadmeSaver(project: Project | null): UseReadmeSaver {
         return;
       }
       await writeFileToFolder(project.handle, 'README.md', content);
+      // Reflect the write into the in-memory snapshot (the app would otherwise
+      // show the stale README until reload).
+      onSaved(content);
       setSaveStatus({ ok: true, message: 'Saved to the project folder.' });
     } catch (e) {
       setSaveStatus({
