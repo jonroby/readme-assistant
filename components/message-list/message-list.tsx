@@ -20,7 +20,7 @@ export function MessageList({
   saveStatus,
 }: MessageListProps) {
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto">
+    <div className="flex flex-1 flex-col gap-4 overflow-y-auto pb-6">
       {messages.length === 0 ? (
         <p className="text-sm text-muted-foreground">{emptyText}</p>
       ) : (

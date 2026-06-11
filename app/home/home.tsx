@@ -62,7 +62,7 @@ export function Home() {
           // Centered readable column by default; an even split when a file is
           // open (basis-0 + flex-1 so it and the viewer divide the leftover
           // space equally, regardless of the fixed-width tree).
-          openFile ? 'min-w-0 flex-1 basis-0' : 'mx-auto w-full max-w-2xl',
+          openFile ? 'min-w-0 flex-1 basis-0' : 'mx-auto w-full max-w-3xl',
         )}
       >
         {error && <p className="text-sm text-destructive">{error}</p>}
