@@ -80,6 +80,12 @@ export function Home() {
           emptyText="Ask a question about your project."
         />
 
+        {chat.error && (
+          <p className="text-sm text-destructive">
+            Something went wrong with that request. Please try again.
+          </p>
+        )}
+
         <ChatInput
           onSend={handleSend}
           disabled={chat.busy}

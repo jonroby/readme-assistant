@@ -25,6 +25,8 @@ type UseChatSession = {
   messages: UIMessage[];
   sendMessage: (message: { text: string }) => void;
   busy: boolean;
+  /** The last request error (model/transport failure), or null. */
+  error: Error | null;
   /**
    * Append a history marker recording an out-of-band event (e.g. a save). It's
    * a real message the model sees on the next turn, rendered as a UI chip.
@@ -65,8 +67,21 @@ export function useChatSession(
     onProposeReadmeRef.current = onProposeReadme;
   }, [onProposeReadme]);
 
-  const { messages, sendMessage, setMessages, stop, addToolOutput, status } =
-    useChat({
+  const {
+    messages,
+    sendMessage,
+    setMessages,
+    stop,
+    addToolOutput,
+    status,
+    error,
+  } = useChat({
+      // Surfaces request failures (model/transport errors — a dropped network
+      // call, a 5xx, a rate limit). The SDK already exposes `error`; we log
+      // here for debugging and render `error` in the chat for the user.
+      onError(err) {
+        console.error('Chat request failed:', err);
+      },
       // prepareSendMessagesRequest reads projectRef.current at request time (a
       // deferred callback), not during render — the ref feeds the chat fresh
       // state without re-creating it.
@@ -154,5 +169,12 @@ export function useChatSession(
     setMessages([]);
   };
 
-  return { messages, sendMessage, busy, addMarker, reset };
+  return {
+    messages,
+    sendMessage,
+    busy,
+    error: error ?? null,
+    addMarker,
+    reset,
+  };
 }
