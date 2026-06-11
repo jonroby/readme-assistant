@@ -3,23 +3,18 @@
 import { FolderPicker } from '@/components/folder-picker';
 import { FileTree } from '@/components/file-tree';
 import { FileViewer, DraftViewer } from '@/components/file-viewer';
-import { MessageList } from '@/components/message-list';
-import { ChatInput } from '@/components/chat-input';
+import { ChatPanel } from '@/components/chat-panel';
 import { OverwriteReadmeDialog } from '@/components/overwrite-readme-dialog';
 import { cn } from '@/lib/utils';
 import { findReadme } from '@/lib/project';
 import { useApp } from './hooks/use-app';
 
 export function Home() {
-  const { project: projectState, chat, saver, view, clear } = useApp();
+  const { project: projectState, chatRef, saver, view, clear } = useApp();
   const { project, error, pickFolder } = projectState;
-  const { openFile, draft, setOpenFile, closeViewer } = view;
+  const { openFile, draft, openDraft, setOpenFile, closeViewer } = view;
   // The center viewer is open for either a real file or a staged README draft.
   const viewerOpen = openFile !== null || draft !== null;
-
-  const handleSend = (text: string) => {
-    if (project) chat.sendMessage({ text });
-  };
 
   // No project yet: a single centered prompt to upload one. Picking a folder
   // reveals the workspace (tree | viewer | chat).
@@ -75,21 +70,10 @@ export function Home() {
       >
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <MessageList
-          messages={chat.messages}
-          emptyText="Ask a question about your project."
-        />
-
-        {chat.error && (
-          <p className="text-sm text-destructive">
-            Something went wrong with that request. Please try again.
-          </p>
-        )}
-
-        <ChatInput
-          onSend={handleSend}
-          disabled={chat.busy}
-          placeholder="Ask about your project..."
+        <ChatPanel
+          ref={chatRef}
+          project={project}
+          onProposeReadme={openDraft}
         />
       </main>
       <OverwriteReadmeDialog

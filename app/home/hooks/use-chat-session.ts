@@ -60,13 +60,6 @@ export function useChatSession(
     projectRef.current = project;
   }, [project]);
 
-  // Same pattern for the propose callback: a ref keeps the latest closure
-  // available to onToolCall without re-creating the chat.
-  const onProposeReadmeRef = useRef(onProposeReadme);
-  useEffect(() => {
-    onProposeReadmeRef.current = onProposeReadme;
-  }, [onProposeReadme]);
-
   const {
     messages,
     sendMessage,
@@ -113,7 +106,10 @@ export function useChatSession(
         // side effect beyond returning a tool result.
         if (name === 'proposeReadme') {
           const { content } = toolCall.input as ProposeReadmeInput;
-          onProposeReadmeRef.current(stripOuterFence(content));
+          // onProposeReadme has a stable identity (see useApp.openDraft), so
+          // calling it directly from this once-captured callback is safe — no
+          // ref needed.
+          onProposeReadme(stripOuterFence(content));
         }
 
         addToolOutput({
