@@ -1,39 +1,21 @@
 'use client';
 
-import { useState } from 'react';
 import { Dropzone } from '@/components/dropzone';
 import { FileTree } from '@/components/file-tree';
 import { FileViewer } from '@/components/file-viewer';
 import { MessageList } from '@/components/message-list';
 import { ChatInput } from '@/components/chat-input';
 import { OverwriteReadmeDialog } from '@/components/overwrite-readme-dialog';
-import { supportsDirectoryAccess } from '@/lib/directory';
 import { cn } from '@/lib/utils';
-import { useProject } from './hooks/use-project';
-import { useChatSession } from './hooks/use-chat-session';
-import { useReadmeSaver } from './hooks/use-readme-saver';
+import { useApp } from './hooks/use-app';
 
 export function Home() {
-  const { project, dirHandle, error, loadFromFiles, pickFolder, clear } =
-    useProject();
-  const { messages, sendMessage, busy, reset: resetChat } =
-    useChatSession(project);
-  const saver = useReadmeSaver(dirHandle, project);
-
-  // Path of the file open in the viewer, or null. When set, the layout splits:
-  // tree | file viewer | chat. Only one file is viewed at a time.
-  const [openFile, setOpenFile] = useState<string | null>(null);
-
-  // Clearing the project tears down every concern: project, chat, saves, viewer.
-  const handleRemove = () => {
-    clear();
-    resetChat();
-    saver.reset();
-    setOpenFile(null);
-  };
+  const { project: projectState, chat, saver, view, clear } = useApp();
+  const { project, error, pickFolder } = projectState;
+  const { openFile, setOpenFile } = view;
 
   const handleSend = (text: string) => {
-    if (project) sendMessage({ text });
+    if (project) chat.sendMessage({ text });
   };
 
   // No project yet: a single centered prompt to upload one. Picking a folder
@@ -52,10 +34,7 @@ export function Home() {
               back to disk.
             </p>
           </div>
-          <Dropzone
-            onFiles={loadFromFiles}
-            onPickDirectory={supportsDirectoryAccess() ? pickFolder : undefined}
-          />
+          <Dropzone onPickFolder={pickFolder} />
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </div>
@@ -68,7 +47,7 @@ export function Home() {
         project={project}
         activePath={openFile}
         onSelectFile={setOpenFile}
-        onClear={handleRemove}
+        onClear={clear}
       />
       {openFile && (
         <FileViewer
@@ -89,7 +68,7 @@ export function Home() {
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <MessageList
-          messages={messages}
+          messages={chat.messages}
           emptyText="Ask a question about your project."
           onSaveReadme={saver.save}
           saveStatus={saver.saveStatus}
@@ -97,7 +76,7 @@ export function Home() {
 
         <ChatInput
           onSend={handleSend}
-          disabled={busy}
+          disabled={chat.busy}
           placeholder="Ask about your project..."
         />
       </main>

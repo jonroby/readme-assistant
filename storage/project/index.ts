@@ -1,3 +1,7 @@
 export { saveProject, loadProject, clearProject } from './persist';
-export { readProject } from './read-project';
-export { readDroppedEntries } from './read-dropped-entries';
+export {
+  pickFolder,
+  readFolder,
+  writeFileToFolder,
+  ensurePermission,
+} from './access';

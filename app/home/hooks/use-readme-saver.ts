@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { findReadme, type Project } from '@/lib/project';
-import type { DirectoryHandle } from '@/lib/directory';
-import { writeFileToDirectory, ensurePermission } from '@/storage';
-import { saveReadmeToDisk } from '@/agent/tools';
+import { writeFileToFolder, ensurePermission } from '@/storage';
 
 type PendingSave = { messageId: string; content: string };
 
@@ -24,30 +22,27 @@ type UseReadmeSaver = {
 };
 
 /**
- * Owns the README save flow: which write path to take, the overwrite-confirm
- * gate on the directory-handle path (which has no OS dialog), and per-message
- * status. The directory-handle write replaces README.md in place.
+ * Owns the README save flow: the overwrite-confirm gate (the handle write has
+ * no OS dialog, so we confirm before replacing an existing README) and
+ * per-message status. Writes README.md in place via the project's handle.
  */
-export function useReadmeSaver(
-  dirHandle: DirectoryHandle | null,
-  project: Project | null,
-): UseReadmeSaver {
+export function useReadmeSaver(project: Project | null): UseReadmeSaver {
   const [saveStatus, setSaveStatus] = useState<Record<string, string>>({});
   const [pendingSave, setPendingSave] = useState<PendingSave | null>(null);
 
   const report = (messageId: string, status: string) =>
     setSaveStatus((prev) => ({ ...prev, [messageId]: status }));
 
-  // The actual directory-handle write. Needs a user gesture for the permission
-  // re-grant, so it runs from a click (the save button or confirm dialog).
+  // The actual write. Needs a user gesture for the permission re-grant, so it
+  // runs from a click (the save button or confirm dialog).
   const writeToFolder = async (messageId: string, content: string) => {
-    if (!dirHandle) return;
+    if (!project) return;
     try {
-      if (!(await ensurePermission(dirHandle))) {
+      if (!(await ensurePermission(project.handle))) {
         report(messageId, 'Permission to write to the folder was denied.');
         return;
       }
-      await writeFileToDirectory(dirHandle, 'README.md', content);
+      await writeFileToFolder(project.handle, 'README.md', content);
       report(messageId, 'README written to the project folder.');
     } catch (e) {
       report(
@@ -58,18 +53,13 @@ export function useReadmeSaver(
   };
 
   const save = async (messageId: string, content: string) => {
-    // Directory-handle path: confirm before overwriting an existing README
-    // (the handle write has no OS dialog). Otherwise the save-file dialog
-    // prompts on overwrite itself.
-    if (dirHandle) {
-      if (project && findReadme(project)) {
-        setPendingSave({ messageId, content });
-        return;
-      }
-      await writeToFolder(messageId, content);
+    // Confirm before overwriting an existing README (the handle write has no
+    // OS dialog to prompt on its own).
+    if (project && findReadme(project)) {
+      setPendingSave({ messageId, content });
       return;
     }
-    report(messageId, await saveReadmeToDisk(content));
+    await writeToFolder(messageId, content);
   };
 
   const confirmOverwrite = () => {

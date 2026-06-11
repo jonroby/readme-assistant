@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { runSearchFiles } from './run';
-import type { Project } from '@/lib/project';
+import { makeProject } from '@/lib/project.fixture';
 
-const project: Project = {
+const project = makeProject({
   name: 'demo',
   totalBytes: 0,
   files: [
@@ -10,7 +10,7 @@ const project: Project = {
     { path: 'b.ts', content: 'export function FOO() {}' },
     { path: 'c.ts', content: 'nothing here' },
   ],
-};
+});
 
 describe('runSearchFiles', () => {
   it('finds matches across files with line numbers', () => {
@@ -27,14 +27,14 @@ describe('runSearchFiles', () => {
   });
 
   it('respects a directory prefix', () => {
-    const scoped: Project = {
+    const scoped = makeProject({
       name: 'demo',
       totalBytes: 0,
       files: [
         { path: 'src/a.ts', content: 'foo' },
         { path: 'lib/b.ts', content: 'foo' },
       ],
-    };
+    });
     const out = runSearchFiles({ query: 'foo', prefix: 'src/' }, scoped);
     expect(out).toContain('src/a.ts');
     expect(out).not.toContain('lib/b.ts');

@@ -1,8 +1,42 @@
+// Minimal typing for the File System Access API — not in every TS lib.dom yet.
+// A DirectoryHandle is a project's location (project.handle): the live, writable
+// reference to the picked folder. The operations that pick/read/write it live in
+// @/storage/project (access.ts).
+export type PermissionState = 'granted' | 'denied' | 'prompt';
+export type PermissionDescriptor = { mode?: 'read' | 'readwrite' };
+
+export type DirectoryHandle = {
+  kind: 'directory';
+  name: string;
+  entries: () => AsyncIterableIterator<[string, FileSystemHandleLike]>;
+  getFileHandle: (
+    name: string,
+    options?: { create?: boolean },
+  ) => Promise<FileHandle>;
+  queryPermission: (d?: PermissionDescriptor) => Promise<PermissionState>;
+  requestPermission: (d?: PermissionDescriptor) => Promise<PermissionState>;
+};
+
+type FileHandle = {
+  kind: 'file';
+  name: string;
+  getFile: () => Promise<File>;
+  createWritable: () => Promise<{
+    write: (data: string) => Promise<void>;
+    close: () => Promise<void>;
+  }>;
+};
+
+type FileSystemHandleLike = DirectoryHandle | FileHandle;
+
 export type ProjectFile = { path: string; content: string };
 export type Project = {
   name: string;
   files: ProjectFile[];
   totalBytes: number;
+  // The folder the project was loaded from — its location and write-back
+  // target. A project always has one (folder-pick is the only load path).
+  handle: DirectoryHandle;
 };
 
 export const MAX_PROJECT_BYTES = 1024 * 1024; // 1 MB

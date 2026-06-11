@@ -3,15 +3,16 @@ import {
   formatBytes,
   isNoise,
   type Project,
+  type DirectoryHandle,
+  type PermissionDescriptor,
 } from '@/lib/project';
-import type { DirectoryHandle, PermissionDescriptor } from '@/lib/directory';
 
 /**
- * Prompt the user to pick a project folder. Returns a live, writable directory
- * handle — the thing we persist so we can read from and write back into the
- * same folder later. Must be called from a user gesture.
+ * Prompt the user to pick a project folder. Returns a live, writable handle —
+ * the thing we persist so we can read from and write back into the same folder
+ * later. Must be called from a user gesture.
  */
-export async function pickDirectory(): Promise<DirectoryHandle> {
+export async function pickFolder(): Promise<DirectoryHandle> {
   const picker = (
     window as unknown as {
       showDirectoryPicker: (o?: {
@@ -23,13 +24,11 @@ export async function pickDirectory(): Promise<DirectoryHandle> {
 }
 
 /**
- * Recursively read every file under a directory handle into the Project shape
- * the chat loop already uses. Same rules as the upload path: skip OS noise,
- * enforce the 1 MB cap, paths are relative to the picked folder.
+ * Recursively read every file under a folder handle into the Project shape the
+ * chat loop uses. Skips OS noise, enforces the 1 MB cap; paths are relative to
+ * the picked folder.
  */
-export async function readDirectoryProject(
-  dir: DirectoryHandle,
-): Promise<Project> {
+export async function readFolder(folder: DirectoryHandle): Promise<Project> {
   let totalBytes = 0;
   const files: Project['files'] = [];
 
@@ -53,19 +52,20 @@ export async function readDirectoryProject(
     }
   }
 
-  await walk(dir, '');
-  // dir.name is the picked folder; paths are relative to it, so it isn't in
-  // them — this is the authoritative project name.
-  return { name: dir.name, files, totalBytes };
+  await walk(folder, '');
+  // folder.name is the picked folder; paths are relative to it, so it isn't in
+  // them — this is the authoritative project name. The handle is the project's
+  // location and write-back target.
+  return { name: folder.name, files, totalBytes, handle: folder };
 }
 
 /** Write (creating or overwriting) a file directly into the project folder. */
-export async function writeFileToDirectory(
-  dir: DirectoryHandle,
+export async function writeFileToFolder(
+  folder: DirectoryHandle,
   name: string,
   content: string,
 ): Promise<void> {
-  const fileHandle = await dir.getFileHandle(name, { create: true });
+  const fileHandle = await folder.getFileHandle(name, { create: true });
   const writable = await fileHandle.createWritable();
   await writable.write(content);
   await writable.close();
@@ -73,11 +73,13 @@ export async function writeFileToDirectory(
 
 /**
  * Ensure we still have readwrite permission for a (possibly persisted) handle.
- * Handles restored from IndexedDB report 'prompt' and need a fresh grant, which
+ * Handles restored from storage report 'prompt' and need a fresh grant, which
  * requires a user gesture — so call this from a click. Returns true if granted.
  */
-export async function ensurePermission(dir: DirectoryHandle): Promise<boolean> {
+export async function ensurePermission(
+  folder: DirectoryHandle,
+): Promise<boolean> {
   const opts: PermissionDescriptor = { mode: 'readwrite' };
-  if ((await dir.queryPermission(opts)) === 'granted') return true;
-  return (await dir.requestPermission(opts)) === 'granted';
+  if ((await folder.queryPermission(opts)) === 'granted') return true;
+  return (await folder.requestPermission(opts)) === 'granted';
 }
