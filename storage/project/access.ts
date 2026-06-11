@@ -25,7 +25,7 @@ export async function pickFolder(): Promise<DirectoryHandle> {
 
 /**
  * Recursively read every file under a folder handle into the Project shape the
- * chat loop uses. Skips OS noise, enforces the 1 MB cap; paths are relative to
+ * chat loop uses. Skips OS noise, enforces the 2 MB cap; paths are relative to
  * the picked folder.
  */
 export async function readFolder(folder: DirectoryHandle): Promise<Project> {

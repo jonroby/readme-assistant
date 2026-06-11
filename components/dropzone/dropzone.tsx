@@ -15,7 +15,7 @@ export function Dropzone({ onPickFolder }: DropzoneProps) {
     >
       <FolderOpen className="size-6 text-muted-foreground" />
       <span className="text-sm font-medium">Choose a project folder</span>
-      <span className="text-xs text-muted-foreground">Max 1 MB total</span>
+      <span className="text-xs text-muted-foreground">Max 2 MB total</span>
     </button>
   );
 }
