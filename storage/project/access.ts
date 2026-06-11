@@ -53,6 +53,14 @@ export async function readFolder(folder: DirectoryHandle): Promise<Project> {
   }
 
   await walk(folder, '');
+  // Reject an empty folder (nothing readable after the noise filter): there's
+  // nothing for the assistant to work with, and it keeps "a loaded project has
+  // files" true everywhere downstream.
+  if (files.length === 0) {
+    throw new Error(
+      'That folder has no readable files. Pick a folder with project files.',
+    );
+  }
   // folder.name is the picked folder; paths are relative to it, so it isn't in
   // them — this is the authoritative project name. The handle is the project's
   // location and write-back target.

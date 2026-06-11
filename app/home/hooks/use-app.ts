@@ -1,29 +1,30 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { applyReadmeToProject, SAVED_README_PATH } from '@/lib/project';
+import type { ChatPanelHandle } from '@/components/chat-panel';
 import { useProject } from './use-project';
-import { useChatSession } from './use-chat-session';
 import { useReadmeSaver } from './use-readme-saver';
 
 /**
- * The app's whole state. Composes the project, chat, and README-saver hooks —
- * which share one lifecycle: a project loads and they all spin up; `clear`
- * tears every concern down together, so no part can be left behind.
+ * The app's whole state. Composes the project and README-saver hooks, owns the
+ * viewer state, and coordinates the save workflow. The chat/LLM concern lives
+ * in its own <ChatPanel> component (so streaming re-renders stay contained);
+ * the app reaches into it only for two imperative actions — appending a save
+ * a user-action message and resetting on teardown — via `chatRef`.
  */
 export function useApp() {
   const project = useProject();
+
+  // Imperative handle to the chat component. Used only for out-of-band actions
+  // (inject a save message; reset the conversation) — not data flow.
+  const chatRef = useRef<ChatPanelHandle>(null);
 
   // The viewer's content (app-level view state; cleared on teardown). It holds
   // EITHER a real project file (by path) OR a staged README draft — never both,
   // since there is a single viewer pane. Opening one clears the other.
   const [openFile, setOpenFileState] = useState<string | null>(null);
   const [draft, setDraft] = useState<string | null>(null);
-
-  // addMarker comes from the chat hook below, but handleSaved (wired into the
-  // saver above the chat) needs it — a ref bridges the cycle without
-  // re-ordering the hooks.
-  const addMarkerRef = useRef<(text: string) => void>(() => {});
 
   // A successful save: record it in the chat timeline, fold the written README
   // into the in-memory snapshot (so the tree/findReadme stop being stale
@@ -33,7 +34,7 @@ export function useApp() {
   const handleSaved = (content: string) => {
     // Phrased as a fact the model can act on next turn (it now knows the README
     // on disk is current and shouldn't re-prompt the user to save).
-    addMarkerRef.current('Saved the README to disk as README.md.');
+    chatRef.current?.addCustomMessage('Saved the README to disk as README.md.');
     if (project.project) {
       project.updateProject(applyReadmeToProject(project.project, content));
     }
@@ -50,13 +51,22 @@ export function useApp() {
 
   // Show a proposed README in the viewer. Called when proposeReadme stages a
   // draft, so the user reads it in the panel instead of a wall of chat text.
-  // A fresh draft clears any prior save status (the Save button lives in the
-  // viewer header alongside the draft).
-  const openDraft = (content: string) => {
-    saver.clearStatus();
+  // Stable identity (only stable setters inside) so the chat callback that
+  // calls it never goes stale. The save-status reset that used to live here now
+  // happens in the effect below, keyed off `draft`.
+  const openDraft = useCallback((content: string) => {
     setOpenFileState(null);
     setDraft(content);
-  };
+  }, []);
+
+  // A freshly opened draft starts clean: clear any prior "Saved ✓" so the new
+  // draft's Save button isn't showing the previous draft's result.
+  useEffect(() => {
+    if (draft !== null) saver.clearStatus();
+    // saver.clearStatus is a stable setter wrapper; we intentionally key only
+    // on `draft` so this fires when a new draft opens, not on save-state changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft]);
 
   const closeViewer = () => {
     setOpenFileState(null);
@@ -65,20 +75,16 @@ export function useApp() {
 
   const view = { openFile, draft, setOpenFile, openDraft, closeViewer };
 
-  const chat = useChatSession(project.project, openDraft);
-  useEffect(() => {
-    addMarkerRef.current = chat.addMarker;
-  }, [chat.addMarker]);
-
   // Tear down every concern at once: project + handle, chat, saves, viewer.
   const clear = () => {
     project.clear();
-    chat.reset();
+    chatRef.current?.reset();
     saver.reset();
     closeViewer();
   };
 
   // Grouped by concern so the seams stay visible at the call site, rather than
-  // flattened into one prop bag that reads like a single mixed blob.
-  return { project, chat, saver, view, clear };
+  // flattened into one prop bag that reads like a single mixed blob. `chatRef`
+  // is wired onto <ChatPanel> by the consumer.
+  return { project, chatRef, saver, view, clear };
 }

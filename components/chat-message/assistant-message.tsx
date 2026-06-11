@@ -2,7 +2,7 @@
 
 import type { UIMessage } from 'ai';
 import Markdown from 'react-markdown';
-import { stripOuterFence } from '@/agent/strip-fence';
+import { stripOuterFence } from '@/lib/strip-fence';
 import { ToolActivity, type ToolPart } from './tool-activity';
 
 /**

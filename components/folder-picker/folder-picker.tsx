@@ -2,11 +2,11 @@
 
 import { FolderOpen } from 'lucide-react';
 
-type DropzoneProps = {
+type FolderPickerProps = {
   onPickFolder: () => void;
 };
 
-export function Dropzone({ onPickFolder }: DropzoneProps) {
+export function FolderPicker({ onPickFolder }: FolderPickerProps) {
   return (
     <button
       type="button"

@@ -7,14 +7,11 @@ import { buildSystemPrompt } from '@/agent/system-prompt';
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
-  const {
-    messages,
-    hasProject,
-  }: { messages: UIMessage[]; hasProject?: boolean } = await request.json();
+  const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    system: buildSystemPrompt(hasProject ?? false),
+    system: buildSystemPrompt(),
     messages: await convertToModelMessages(messages),
     // No tool has `execute` — they all resolve on the client.
     tools,
