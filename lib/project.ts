@@ -39,7 +39,7 @@ export type Project = {
   handle: DirectoryHandle;
 };
 
-export const MAX_PROJECT_BYTES = 1024 * 1024; // 1 MB
+export const MAX_PROJECT_BYTES = 2 * 1024 * 1024; // 2 MB
 
 /**
  * OS/tooling artifacts to drop from an upload. This is NOT content filtering —

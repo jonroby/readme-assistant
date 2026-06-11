@@ -74,7 +74,7 @@ npm test
 - Writing the README back to disk needs a Chromium browser (File System Access
   API). After a reload the browser re-asks for folder permission on your first
   save.
-- 1 MB load cap with no content filtering beyond OS noise; keep the folder lean.
+- 2 MB load cap with no content filtering beyond OS noise; keep the folder lean.
 - The loaded project is a snapshot; re-load to pick up on-disk changes.
 - Uses the `gpt-4o` model.
 
