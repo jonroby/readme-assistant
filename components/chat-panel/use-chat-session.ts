@@ -8,7 +8,7 @@ import {
   type UIMessage,
 } from 'ai';
 import type { Project } from '@/lib/project';
-import { stripOuterFence } from '@/agent/strip-fence';
+import { stripOuterFence } from '@/lib/strip-fence';
 import { USER_ACTION_PREFIX } from '@/components/chat-message/user-action-message';
 import {
   resolveToolCall,
