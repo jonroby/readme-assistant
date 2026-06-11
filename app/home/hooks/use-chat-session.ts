@@ -8,13 +8,15 @@ import {
   type UIMessage,
 } from 'ai';
 import type { Project } from '@/lib/project';
+import { stripOuterFence } from '@/agent/strip-fence';
 import {
   runFindExistingReadme,
   runListFiles,
   runReadFile,
   runSearchFiles,
-  runWriteReadme,
+  runProposeReadme,
   type ListFilesInput,
+  type ProposeReadmeInput,
   type ReadFileInput,
   type SearchFilesInput,
 } from '@/agent/tools';
@@ -35,15 +37,26 @@ type UseChatSession = {
 /**
  * Owns the chat: the useChat instance, client-side tool resolution, and
  * conversation persistence. Takes the live project so the in-flight chat
- * callbacks see fresh state without re-creating the chat.
+ * callbacks see fresh state without re-creating the chat. `onProposeReadme`
+ * fires when the model stages a README, so the app can open it in the viewer.
  */
-export function useChatSession(project: Project | null): UseChatSession {
+export function useChatSession(
+  project: Project | null,
+  onProposeReadme: (content: string) => void,
+): UseChatSession {
   // onToolCall and the transport read the latest project at call time. A ref
   // keeps it current without re-creating the chat; synced in an effect.
   const projectRef = useRef<Project | null>(null);
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
+
+  // Same pattern for the propose callback: a ref keeps the latest closure
+  // available to onToolCall without re-creating the chat.
+  const onProposeReadmeRef = useRef(onProposeReadme);
+  useEffect(() => {
+    onProposeReadmeRef.current = onProposeReadme;
+  }, [onProposeReadme]);
 
   const { messages, sendMessage, setMessages, stop, addToolOutput, status } =
     useChat({
@@ -101,12 +114,15 @@ export function useChatSession(project: Project | null): UseChatSession {
               projectRef.current,
             ),
           });
-        } else if (toolCall.toolName === 'writeReadme') {
-          // The staged README lives on the message (its writeReadme tool part).
+        } else if (toolCall.toolName === 'proposeReadme') {
+          // The staged README lives on the message (its proposeReadme tool
+          // part); also open it in the viewer so the user reads it there.
+          const { content } = toolCall.input as ProposeReadmeInput;
+          onProposeReadmeRef.current(stripOuterFence(content));
           addToolOutput({
-            tool: 'writeReadme',
+            tool: 'proposeReadme',
             toolCallId: toolCall.toolCallId,
-            output: runWriteReadme(),
+            output: runProposeReadme(),
           });
         }
       },

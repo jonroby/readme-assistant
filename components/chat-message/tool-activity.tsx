@@ -8,8 +8,8 @@ export type ToolPart = {
 /** One-line "what the agent is doing" label for a tool-call part. */
 function toolActivityLabel(part: ToolPart): string {
   switch (part.type) {
-    case 'tool-writeReadme':
-      return '✍️ Writing README…';
+    case 'tool-proposeReadme':
+      return '✍️ Drafted a README';
     case 'tool-findExistingReadme':
       return '🔍 Checking for an existing README…';
     case 'tool-listFiles':

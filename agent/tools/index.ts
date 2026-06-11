@@ -2,7 +2,7 @@ import { findExistingReadmeTool } from './find-existing-readme';
 import { listFilesTool } from './list-files';
 import { readFileTool } from './read-file';
 import { searchFilesTool } from './search-files';
-import { writeReadmeTool } from './write-readme';
+import { proposeReadmeTool } from './propose-readme';
 
 /** The tool set passed to streamText. One entry per tool folder. */
 export const tools = {
@@ -10,7 +10,7 @@ export const tools = {
   listFiles: listFilesTool,
   readFile: readFileTool,
   searchFiles: searchFilesTool,
-  writeReadme: writeReadmeTool,
+  proposeReadme: proposeReadmeTool,
 };
 
 export { runFindExistingReadme } from './find-existing-readme';
@@ -18,7 +18,7 @@ export { runListFiles, type ListFilesInput } from './list-files';
 export { runReadFile, type ReadFileInput } from './read-file';
 export { runSearchFiles, type SearchFilesInput } from './search-files';
 export {
-  runWriteReadme,
+  runProposeReadme,
   saveReadmeToDisk,
-  type WriteReadmeInput,
-} from './write-readme';
+  type ProposeReadmeInput,
+} from './propose-readme';

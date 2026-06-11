@@ -58,8 +58,8 @@ export function isNoise(path: string): boolean {
 }
 
 /**
- * Find the project's existing README, if any — the file writeReadme would
- * overwrite. Matches a root-level file named README (any extension/casing —
+ * Find the project's existing README, if any — the file a saved proposeReadme
+ * draft would overwrite. Matches a root-level file named README (any extension/casing —
  * README.md, readme.txt, README). Returns the matched ProjectFile so callers
  * can read it or warn before overwriting.
  */
