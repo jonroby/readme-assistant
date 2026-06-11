@@ -1,17 +1,20 @@
 'use client';
 
 import type { UIMessage } from 'ai';
+import { MARKER_ID_PREFIX } from '@/app/home/hooks/use-chat-session';
 
 /**
- * The text of a history marker (e.g. "Saved README.md to disk"), if this
- * message is one. Markers are synthetic, UI-only timeline entries carrying a
- * single data-marker part (see useChatSession.addMarker).
+ * The display text of a history marker (e.g. "Saved README.md to disk"), if
+ * this message is one. Markers are real messages the model also sees, but the
+ * UI renders them as chips — identified by the marker- id prefix (set in
+ * useChatSession.addMarker). The text is the message's first text part.
  */
 export function getMarkerText(message: UIMessage): string | null {
-  const part = message.parts.find((p) => p.type === 'data-marker') as
-    | { data?: { text?: string } }
+  if (!message.id.startsWith(MARKER_ID_PREFIX)) return null;
+  const part = message.parts.find((p) => p.type === 'text') as
+    | { text?: string }
     | undefined;
-  return part?.data?.text ?? null;
+  return part?.text ?? null;
 }
 
 /**
@@ -23,7 +26,7 @@ export function getMarkerText(message: UIMessage): string | null {
 export function MarkerMessage({ text }: { text: string }) {
   return (
     <span className="-mt-2 inline-flex w-fit items-center rounded-full border bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-      {text}
+      📝 {text}
     </span>
   );
 }

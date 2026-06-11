@@ -31,7 +31,9 @@ export function useApp() {
   // README.md file — it's no longer a draft, so it loses the "(draft)" label
   // and the Save control.
   const handleSaved = (content: string) => {
-    addMarkerRef.current('📝 Saved README.md to disk');
+    // Phrased as a fact the model can act on next turn (it now knows the README
+    // on disk is current and shouldn't re-prompt the user to save).
+    addMarkerRef.current('Saved the README to disk as README.md.');
     if (project.project) {
       project.updateProject(applyReadmeToProject(project.project, content));
     }

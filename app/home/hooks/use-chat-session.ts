@@ -30,15 +30,20 @@ type UseChatSession = {
   messages: UIMessage[];
   sendMessage: (message: { text: string }) => void;
   busy: boolean;
-  /** Append a history marker to the timeline (not sent to the model). */
+  /**
+   * Append a history marker recording an out-of-band event (e.g. a save). It's
+   * a real message the model sees on the next turn, rendered as a UI chip.
+   */
   addMarker: (text: string) => void;
   /** Clear the conversation from state and storage (e.g. on project removal). */
   reset: () => void;
 };
 
-// A monotonic id for synthetic (non-model) messages we inject, so React keys
-// stay stable. Module-scoped counter — markers are few and the page is the only
-// caller; uniqueness within a session is all we need.
+// Marker messages are identified by this id prefix — the UI renders them as
+// chips (see marker-message) instead of chat bubbles. A monotonic counter keeps
+// React keys stable; markers are few and the page is the only caller, so
+// session-uniqueness is enough.
+export const MARKER_ID_PREFIX = 'marker-';
 let markerSeq = 0;
 
 /**
@@ -79,11 +84,10 @@ export function useChatSession(
           return {
             body: {
               ...body,
-              // Drop our synthetic history markers — they're UI-only and would
-              // confuse convertToModelMessages on the server.
-              messages: messages.filter(
-                (m) => !m.parts.some((p) => p.type === 'data-marker'),
-              ),
+              // Markers ARE forwarded: they carry real text (e.g. that the user
+              // saved the README) the model needs as context. They render as
+              // chips in the UI but read as plain messages to the model.
+              messages,
               hasProject: !!projectRef.current?.files.length,
             },
           };
@@ -156,16 +160,20 @@ export function useChatSession(
   }, [messages]);
 
   // Append a history marker (e.g. "Saved README.md to disk"). It's a synthetic
-  // assistant message carrying a single data-marker part — rendered distinctly
-  // and never sent to the model (we only forward real turns on the next send).
+  // message recording an out-of-band event the model didn't drive (a save
+  // button click). We give it a real text part and a user role so it's INCLUDED
+  // when the history is converted to model messages — otherwise the model never
+  // learns the user saved and re-prompts them to. The UI keys off the marker-
+  // id prefix to render it as a chip rather than a user bubble (see
+  // marker-message).
   const addMarker = (text: string) => {
     markerSeq += 1;
     setMessages((prev) => [
       ...prev,
       {
-        id: `marker-${markerSeq}`,
-        role: 'assistant',
-        parts: [{ type: 'data-marker', data: { text } }],
+        id: `${MARKER_ID_PREFIX}${markerSeq}`,
+        role: 'user',
+        parts: [{ type: 'text', text }],
       } as UIMessage,
     ]);
   };
