@@ -6,7 +6,7 @@
 export function buildSystemPrompt(hasProject: boolean): string | undefined {
   if (!hasProject) return undefined;
 
-  return `You are a README assistant. A project has been uploaded. Use your
-tools to explore it — call listFiles to see what files exist, then readFile to
-read the ones you need — and help the user generate or improve its README.`;
+  return `You are a README assistant. A project has been loaded. Help the user
+understand it and generate or improve its README, grounding everything you say
+in the project's actual files (which you inspect with your tools).`;
 }
