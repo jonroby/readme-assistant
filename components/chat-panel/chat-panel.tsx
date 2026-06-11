@@ -2,9 +2,9 @@
 
 import { forwardRef, useImperativeHandle } from 'react';
 import type { Project } from '@/lib/project';
-import { useChatSession } from '@/app/home/hooks/use-chat-session';
-import { MessageList } from '@/components/message-list';
+import { ChatMessageList } from '@/components/chat-message-list';
 import { ChatInput } from '@/components/chat-input';
+import { useChatSession } from './use-chat-session';
 
 /**
  * Imperative handle the parent uses for out-of-band actions on the chat — ones
@@ -46,7 +46,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
     return (
       <>
-        <MessageList
+        <ChatMessageList
           messages={chat.messages}
           emptyText="Ask a question about your project."
         />

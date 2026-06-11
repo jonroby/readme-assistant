@@ -1,7 +1,11 @@
 'use client';
 
 import type { UIMessage } from 'ai';
-import { MARKER_ID_PREFIX } from '@/app/home/hooks/use-chat-session';
+
+// Marker messages are identified by this id prefix. useChatSession stamps it
+// onto synthetic markers; this renderer keys off it to draw them as chips
+// instead of chat bubbles. Owned here, with the marker rendering it governs.
+export const MARKER_ID_PREFIX = 'marker-';
 
 /**
  * The display text of a history marker (e.g. "Saved README.md to disk"), if

@@ -3,12 +3,12 @@
 import type { UIMessage } from 'ai';
 import { ChatMessage } from '@/components/chat-message';
 
-type MessageListProps = {
+type ChatMessageListProps = {
   messages: UIMessage[];
   emptyText: string;
 };
 
-export function MessageList({ messages, emptyText }: MessageListProps) {
+export function ChatMessageList({ messages, emptyText }: ChatMessageListProps) {
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto pb-6">
       {messages.length === 0 ? (

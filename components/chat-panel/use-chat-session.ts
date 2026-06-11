@@ -9,6 +9,7 @@ import {
 } from 'ai';
 import type { Project } from '@/lib/project';
 import { stripOuterFence } from '@/agent/strip-fence';
+import { MARKER_ID_PREFIX } from '@/components/chat-message/marker-message';
 import {
   resolveToolCall,
   type ProposeReadmeInput,
@@ -36,11 +37,9 @@ type UseChatSession = {
   reset: () => void;
 };
 
-// Marker messages are identified by this id prefix — the UI renders them as
-// chips (see marker-message) instead of chat bubbles. A monotonic counter keeps
-// React keys stable; markers are few and the page is the only caller, so
-// session-uniqueness is enough.
-export const MARKER_ID_PREFIX = 'marker-';
+// A monotonic counter keeps marker React keys stable; markers are few and the
+// page is the only caller, so session-uniqueness is enough. (MARKER_ID_PREFIX
+// is owned by marker-message, the renderer that keys off it.)
 let markerSeq = 0;
 
 /**
