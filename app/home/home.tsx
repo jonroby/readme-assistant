@@ -1,6 +1,6 @@
 'use client';
 
-import { Dropzone } from '@/components/dropzone';
+import { FolderPicker } from '@/components/folder-picker';
 import { FileTree } from '@/components/file-tree';
 import { FileViewer, DraftViewer } from '@/components/file-viewer';
 import { MessageList } from '@/components/message-list';
@@ -37,7 +37,7 @@ export function Home() {
               back to disk.
             </p>
           </div>
-          <Dropzone onPickFolder={pickFolder} />
+          <FolderPicker onPickFolder={pickFolder} />
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       </div>
