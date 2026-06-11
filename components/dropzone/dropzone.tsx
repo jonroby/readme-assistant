@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { readDroppedEntries } from '@/storage/project';
+import { useWebkitDirectoryInput } from './use-webkit-directory-input';
 
 type DropzoneProps = {
   onFiles: (files: File[]) => void;
@@ -13,15 +14,7 @@ type DropzoneProps = {
 
 export function Dropzone({ onFiles, onPickDirectory }: DropzoneProps) {
   const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // `webkitdirectory` must be set via the DOM; React doesn't render it reliably.
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.setAttribute('webkitdirectory', '');
-      inputRef.current.setAttribute('directory', '');
-    }
-  }, []);
+  const inputRef = useWebkitDirectoryInput();
 
   return (
     <>
