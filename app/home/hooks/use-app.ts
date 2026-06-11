@@ -11,13 +11,13 @@ import { useReadmeSaver } from './use-readme-saver';
  * viewer state, and coordinates the save workflow. The chat/LLM concern lives
  * in its own <ChatPanel> component (so streaming re-renders stay contained);
  * the app reaches into it only for two imperative actions — appending a save
- * marker and resetting on teardown — via `chatRef`.
+ * a user-action message and resetting on teardown — via `chatRef`.
  */
 export function useApp() {
   const project = useProject();
 
   // Imperative handle to the chat component. Used only for out-of-band actions
-  // (append a save marker; reset the conversation) — not data flow.
+  // (inject a save message; reset the conversation) — not data flow.
   const chatRef = useRef<ChatPanelHandle>(null);
 
   // The viewer's content (app-level view state; cleared on teardown). It holds
@@ -34,7 +34,7 @@ export function useApp() {
   const handleSaved = (content: string) => {
     // Phrased as a fact the model can act on next turn (it now knows the README
     // on disk is current and shouldn't re-prompt the user to save).
-    chatRef.current?.addMarker('Saved the README to disk as README.md.');
+    chatRef.current?.addCustomMessage('Saved the README to disk as README.md.');
     if (project.project) {
       project.updateProject(applyReadmeToProject(project.project, content));
     }

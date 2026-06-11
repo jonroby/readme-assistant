@@ -8,12 +8,15 @@ import { useChatSession } from './use-chat-session';
 
 /**
  * Imperative handle the parent uses for out-of-band actions on the chat — ones
- * that aren't data flow: appending a save marker after a disk write, and
+ * that aren't data flow: injecting a custom message after a disk write, and
  * resetting the conversation on project teardown.
  */
 export type ChatPanelHandle = {
-  /** Append a history marker (e.g. "Saved the README…") the model also sees. */
-  addMarker: (text: string) => void;
+  /**
+   * Inject a synthetic user message (e.g. "Saved the README…") the model also
+   * sees — for events the user triggered via the UI, not by typing.
+   */
+  addCustomMessage: (text: string) => void;
   /** Clear the conversation from state and storage. */
   reset: () => void;
 };
@@ -38,8 +41,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
     useImperativeHandle(
       ref,
-      () => ({ addMarker: chat.addMarker, reset: chat.reset }),
-      [chat.addMarker, chat.reset],
+      () => ({ addCustomMessage: chat.addCustomMessage, reset: chat.reset }),
+      [chat.addCustomMessage, chat.reset],
     );
 
     const handleSend = (text: string) => chat.sendMessage({ text });

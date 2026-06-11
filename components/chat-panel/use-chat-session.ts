@@ -9,7 +9,7 @@ import {
 } from 'ai';
 import type { Project } from '@/lib/project';
 import { stripOuterFence } from '@/agent/strip-fence';
-import { MARKER_ID_PREFIX } from '@/components/chat-message/marker-message';
+import { USER_ACTION_PREFIX } from '@/components/chat-message/user-action-message';
 import {
   resolveToolCall,
   type ProposeReadmeInput,
@@ -29,18 +29,20 @@ type UseChatSession = {
   /** The last request error (model/transport failure), or null. */
   error: Error | null;
   /**
-   * Append a history marker recording an out-of-band event (e.g. a save). It's
-   * a real message the model sees on the next turn, rendered as a UI chip.
+   * Inject a synthetic user message into the conversation — a real
+   * `{ role: 'user', text }` the model reads as context, recording an
+   * out-of-band event (e.g. "Saved the README to disk") that the user did via
+   * the UI rather than by typing. Rendered as a chip, not a chat bubble.
    */
-  addMarker: (text: string) => void;
+  addCustomMessage: (text: string) => void;
   /** Clear the conversation from state and storage (e.g. on project removal). */
   reset: () => void;
 };
 
-// A monotonic counter keeps marker React keys stable; markers are few and the
-// page is the only caller, so session-uniqueness is enough. (MARKER_ID_PREFIX
-// is owned by marker-message, the renderer that keys off it.)
-let markerSeq = 0;
+// A monotonic counter keeps injected-message React keys stable; they're few and
+// the page is the only caller, so session-uniqueness is enough. (USER_ACTION_PREFIX
+// is owned by user-action-message, the renderer that keys off it.)
+let userActionSeq = 0;
 
 /**
  * Owns the chat: the useChat instance, client-side tool resolution, and
@@ -75,7 +77,8 @@ export function useChatSession(
         console.error('Chat request failed:', err);
       },
       // Default transport: the SDK sends the full message history to /api/chat
-      // (markers included — they're real messages the model should see). The
+      // (injected user-action messages included — they're real messages the
+      // model should see). The
       // server always uses the README prompt since the chat only exists once a
       // project is loaded, so no per-request body shaping is needed.
       transport: new DefaultChatTransport({ api: '/api/chat' }),
@@ -123,19 +126,18 @@ export function useChatSession(
     if (restored.current) saveConversation(messages);
   }, [messages]);
 
-  // Append a history marker (e.g. "Saved README.md to disk"). It's a synthetic
-  // message recording an out-of-band event the model didn't drive (a save
-  // button click). We give it a real text part and a user role so it's INCLUDED
-  // when the history is converted to model messages — otherwise the model never
-  // learns the user saved and re-prompts them to. The UI keys off the marker-
-  // id prefix to render it as a chip rather than a user bubble (see
-  // marker-message).
-  const addMarker = (text: string) => {
-    markerSeq += 1;
+  // Inject a synthetic user message (e.g. "Saved README.md to disk") recording
+  // an out-of-band event the model didn't drive (a save button click). It's a
+  // real user-role text message so it's INCLUDED when the history is converted
+  // to model messages — otherwise the model never learns the user saved and
+  // re-prompts them to. The UI keys off the user-action- id prefix to render it
+  // as a chip rather than a user bubble (see user-action-message).
+  const addCustomMessage = (text: string) => {
+    userActionSeq += 1;
     setMessages((prev) => [
       ...prev,
       {
-        id: `${MARKER_ID_PREFIX}${markerSeq}`,
+        id: `${USER_ACTION_PREFIX}${userActionSeq}`,
         role: 'user',
         parts: [{ type: 'text', text }],
       } as UIMessage,
@@ -153,7 +155,7 @@ export function useChatSession(
     sendMessage,
     busy,
     error: error ?? null,
-    addMarker,
+    addCustomMessage,
     reset,
   };
 }
