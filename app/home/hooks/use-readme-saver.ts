@@ -4,75 +4,92 @@ import { useState } from 'react';
 import { findReadme, type Project } from '@/lib/project';
 import { writeFileToFolder, ensurePermission } from '@/storage';
 
-type PendingSave = { messageId: string; content: string };
+/** The outcome of a save attempt: whether it wrote, plus a message to show. */
+export type SaveResult = { ok: boolean; message: string };
 
 type UseReadmeSaver = {
-  /** Last save result, keyed by the message whose README was saved. */
-  saveStatus: Record<string, string>;
+  /** Result of the last save attempt, or null before any. */
+  saveStatus: SaveResult | null;
   /** A save awaiting overwrite confirmation, or null. */
-  pendingSave: PendingSave | null;
-  /** Save a message's README (may open the overwrite confirm first). */
-  save: (messageId: string, content: string) => Promise<void>;
+  pendingSave: { content: string } | null;
+  /** Save a README draft (may open the overwrite confirm first). */
+  save: (content: string) => Promise<void>;
   /** Confirm the pending overwrite and write. */
   confirmOverwrite: () => void;
   /** Dismiss the overwrite confirm without writing. */
   cancelOverwrite: () => void;
+  /** Clear the last save status (e.g. when a new draft is proposed). */
+  clearStatus: () => void;
   /** Reset all save state (e.g. on project removal). */
   reset: () => void;
 };
 
 /**
  * Owns the README save flow: the overwrite-confirm gate (the handle write has
- * no OS dialog, so we confirm before replacing an existing README) and
- * per-message status. Writes README.md in place via the project's handle.
+ * no OS dialog, so we confirm before replacing an existing README) and the
+ * last save status. There is one draft open at a time, so the status is a
+ * single value. Writes README.md in place via the project's handle.
+ *
+ * `onSaved` fires with the written content after a successful disk write, so
+ * the caller can reflect it into the in-memory project snapshot.
  */
-export function useReadmeSaver(project: Project | null): UseReadmeSaver {
-  const [saveStatus, setSaveStatus] = useState<Record<string, string>>({});
-  const [pendingSave, setPendingSave] = useState<PendingSave | null>(null);
-
-  const report = (messageId: string, status: string) =>
-    setSaveStatus((prev) => ({ ...prev, [messageId]: status }));
+export function useReadmeSaver(
+  project: Project | null,
+  onSaved: (content: string) => void,
+): UseReadmeSaver {
+  const [saveStatus, setSaveStatus] = useState<SaveResult | null>(null);
+  const [pendingSave, setPendingSave] = useState<{ content: string } | null>(
+    null,
+  );
 
   // The actual write. Needs a user gesture for the permission re-grant, so it
   // runs from a click (the save button or confirm dialog).
-  const writeToFolder = async (messageId: string, content: string) => {
+  const writeToFolder = async (content: string) => {
     if (!project) return;
     try {
       if (!(await ensurePermission(project.handle))) {
-        report(messageId, 'Permission to write to the folder was denied.');
+        setSaveStatus({
+          ok: false,
+          message: 'Permission to write to the folder was denied.',
+        });
         return;
       }
       await writeFileToFolder(project.handle, 'README.md', content);
-      report(messageId, 'README written to the project folder.');
+      // Reflect the write into the in-memory snapshot (the app would otherwise
+      // show the stale README until reload).
+      onSaved(content);
+      setSaveStatus({ ok: true, message: 'Saved to the project folder.' });
     } catch (e) {
-      report(
-        messageId,
-        `Failed to write README: ${e instanceof Error ? e.message : 'unknown error'}`,
-      );
+      setSaveStatus({
+        ok: false,
+        message: `Failed to write README: ${e instanceof Error ? e.message : 'unknown error'}`,
+      });
     }
   };
 
-  const save = async (messageId: string, content: string) => {
+  const save = async (content: string) => {
     // Confirm before overwriting an existing README (the handle write has no
     // OS dialog to prompt on its own).
     if (project && findReadme(project)) {
-      setPendingSave({ messageId, content });
+      setPendingSave({ content });
       return;
     }
-    await writeToFolder(messageId, content);
+    await writeToFolder(content);
   };
 
   const confirmOverwrite = () => {
     if (pendingSave) {
-      void writeToFolder(pendingSave.messageId, pendingSave.content);
+      void writeToFolder(pendingSave.content);
       setPendingSave(null);
     }
   };
 
   const cancelOverwrite = () => setPendingSave(null);
 
+  const clearStatus = () => setSaveStatus(null);
+
   const reset = () => {
-    setSaveStatus({});
+    setSaveStatus(null);
     setPendingSave(null);
   };
 
@@ -82,6 +99,7 @@ export function useReadmeSaver(project: Project | null): UseReadmeSaver {
     save,
     confirmOverwrite,
     cancelOverwrite,
+    clearStatus,
     reset,
   };
 }

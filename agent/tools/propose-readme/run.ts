@@ -14,7 +14,7 @@ type SaveFilePicker = (options?: {
 /**
  * Writes the README to disk. MUST be called synchronously from a user gesture
  * (e.g. a button onClick) — showSaveFilePicker throws SecurityError otherwise.
- * This is why the agent loop only STAGES the content (see runWriteReadme); the
+ * This is why the agent loop only STAGES the content (see runProposeReadme); the
  * actual write happens here, on a click. Returns a status string; never throws.
  */
 export async function saveReadmeToDisk(content: string): Promise<string> {
@@ -48,13 +48,13 @@ export async function saveReadmeToDisk(content: string): Promise<string> {
 }
 
 /**
- * Client-side runner for the writeReadme tool. The disk write itself needs a
+ * Client-side runner for the proposeReadme tool. The disk write itself needs a
  * user gesture, which a streaming tool callback does not have — so this only
  * STAGES the content and reports back. The UI then shows a "Save to disk"
- * button whose click performs the real write via saveReadmeToDisk.
+ * button whose click performs the real write.
  */
-export function runWriteReadme(): string {
-  return 'README is ready. Tell the user to click "Save to disk" to write it.';
+export function runProposeReadme(): string {
+  return 'README draft is ready. Tell the user to click "Save" to write it to disk.';
 }
 
 function downloadFallback(content: string): void {

@@ -10,7 +10,7 @@ import { z } from 'zod';
 export const findExistingReadmeTool = tool({
   description:
     'Check whether the project already has a README at its root, and if so ' +
-    'return its current contents. Call this before writeReadme so you can ' +
+    'return its current contents. Call this before proposeReadme so you can ' +
     'improve an existing README rather than discard it. The user is warned ' +
     'before any overwrite, so saving is safe — but improving beats replacing.',
   inputSchema: z.object({}),

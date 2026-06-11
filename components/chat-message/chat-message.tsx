@@ -3,29 +3,16 @@
 import type { UIMessage } from 'ai';
 import { AssistantMessage } from './assistant-message';
 import { UserMessage } from './user-message';
+import { MarkerMessage, getMarkerText } from './marker-message';
 
-type ChatMessageProps = {
-  message: UIMessage;
-  // Save the README staged by this message. Present only when a project is
-  // loaded; the button stays inline with the message that produced the draft.
-  onSaveReadme?: (content: string) => void;
-  saveStatus?: string;
-};
-
-/** A single chat message — dispatches to the user or assistant renderer. */
-export function ChatMessage({
-  message,
-  onSaveReadme,
-  saveStatus,
-}: ChatMessageProps) {
+/** A single chat message — dispatches to the user, assistant, or marker renderer. */
+export function ChatMessage({ message }: { message: UIMessage }) {
+  const marker = getMarkerText(message);
+  if (marker !== null) {
+    return <MarkerMessage text={marker} />;
+  }
   if (message.role === 'user') {
     return <UserMessage message={message} />;
   }
-  return (
-    <AssistantMessage
-      message={message}
-      onSaveReadme={onSaveReadme}
-      saveStatus={saveStatus}
-    />
-  );
+  return <AssistantMessage message={message} />;
 }
