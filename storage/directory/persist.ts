@@ -1,9 +1,11 @@
 import type { DirectoryHandle } from '@/lib/directory';
 
-// Why IndexedDB and not localStorage: a FileSystemDirectoryHandle is a live
-// object, not a string. localStorage only stores strings (JSON.stringify would
-// drop it). IndexedDB uses structured clone, the one mechanism the spec allows
-// to persist a handle so it can be reconnected in a later session.
+// The picked project folder's writable handle, persisted so we can write the
+// README back into it across reloads. Why IndexedDB and not localStorage: a
+// FileSystemDirectoryHandle is a live object, not a string. localStorage only
+// stores strings (JSON.stringify would drop it). IndexedDB uses structured
+// clone, the one mechanism the spec allows to persist a handle so it can be
+// reconnected in a later session.
 
 const DB_NAME = 'readme-assistant';
 const STORE = 'handles';
@@ -32,16 +34,16 @@ function tx<T>(
   );
 }
 
-export function saveHandle(handle: DirectoryHandle): Promise<unknown> {
+export function saveDirectory(handle: DirectoryHandle): Promise<unknown> {
   return tx('readwrite', (store) => store.put(handle, KEY));
 }
 
-export function loadHandle(): Promise<DirectoryHandle | undefined> {
+export function loadDirectory(): Promise<DirectoryHandle | undefined> {
   return tx<DirectoryHandle | undefined>('readonly', (store) =>
     store.get(KEY),
   );
 }
 
-export function clearHandle(): Promise<unknown> {
+export function clearDirectory(): Promise<unknown> {
   return tx('readwrite', (store) => store.delete(KEY));
 }

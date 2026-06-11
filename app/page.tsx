@@ -13,28 +13,27 @@ import { MessageList } from '@/components/message-list';
 import { cn } from '@/lib/utils';
 import { ChatInput } from '@/components/chat-input';
 import { OverwriteReadmeDialog } from '@/components/overwrite-readme-dialog';
+import { findReadme, type Project } from '@/lib/project';
 import {
-  clearProject,
-  findReadme,
-  loadProject,
-  readProject,
-  saveProject,
-  type Project,
-} from '@/lib/project';
-import {
-  clearConversation,
-  loadConversation,
-  saveConversation,
-} from '@/lib/conversation';
-import {
-  ensurePermission,
-  pickDirectory,
-  readDirectoryProject,
   supportsDirectoryAccess,
-  writeFileToDirectory,
   type DirectoryHandle,
 } from '@/lib/directory';
-import { clearHandle, loadHandle, saveHandle } from '@/lib/handle-store';
+import {
+  clearConversation,
+  clearDirectory,
+  clearProject,
+  ensurePermission,
+  loadConversation,
+  loadDirectory,
+  loadProject,
+  pickDirectory,
+  readDirectoryProject,
+  readProject,
+  saveConversation,
+  saveDirectory,
+  saveProject,
+  writeFileToDirectory,
+} from '@/storage';
 import {
   runFindExistingReadme,
   runListFiles,
@@ -164,7 +163,7 @@ export default function Home() {
     const saved = loadConversation();
     if (saved.length) setMessages(saved);
     restored.current = true;
-    loadHandle().then((handle) => {
+    loadDirectory().then((handle) => {
       if (handle) setDirHandle(handle);
     });
   }, [setMessages]);
@@ -198,7 +197,7 @@ export default function Home() {
       }
       const next = await readDirectoryProject(handle);
       saveProject(next);
-      await saveHandle(handle);
+      await saveDirectory(handle);
       setProject(next);
       setDirHandle(handle);
     } catch (e) {
@@ -211,7 +210,7 @@ export default function Home() {
   const handleRemove = () => {
     stop();
     clearProject();
-    clearHandle();
+    clearDirectory();
     clearConversation();
     setProject(null);
     setDirHandle(null);

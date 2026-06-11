@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
-import { readDroppedEntries } from '@/lib/read-dropped-entries';
+import { readDroppedEntries } from '@/storage/project';
 
 type DropzoneProps = {
   onFiles: (files: File[]) => void;
