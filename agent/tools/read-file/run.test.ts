@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { runReadFile } from './run';
-import type { Project } from '@/lib/project';
+import { makeProject } from '@/lib/project.fixture';
 
-const project: Project = {
+const project = makeProject({
   name: 'demo',
   totalBytes: 0,
   files: [{ path: 'src/index.ts', content: 'hello world' }],
-};
+});
 
 describe('runReadFile', () => {
   it('returns the file contents', () => {

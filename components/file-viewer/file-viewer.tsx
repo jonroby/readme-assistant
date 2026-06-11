@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { codeToHtml } from 'shiki';
 import type { Project } from '@/lib/project';
-import { langFromPath } from './lang';
+import { useHighlightedCode } from './use-highlighted-code';
 
 type FileViewerProps = {
   project: Project;
@@ -20,25 +18,7 @@ type FileViewerProps = {
 export function FileViewer({ project, path, onClose }: FileViewerProps) {
   const file = project.files.find((f) => f.path === path);
   const content = file?.content ?? null;
-  // The highlighted HTML is tagged with the path it was produced for, so a
-  // stale result from a previously-open file is never rendered (no synchronous
-  // reset needed). null until the current file's highlight resolves.
-  const [highlight, setHighlight] = useState<{ path: string; html: string }>();
-
-  useEffect(() => {
-    if (content === null) return;
-    let active = true;
-    codeToHtml(content, { lang: langFromPath(path), theme: 'github-light' })
-      .then((out) => {
-        if (active) setHighlight({ path, html: out });
-      })
-      .catch(() => {}); // leave raw text showing on failure
-    return () => {
-      active = false;
-    };
-  }, [content, path]);
-
-  const html = highlight?.path === path ? highlight.html : null;
+  const html = useHighlightedCode(content, path);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col border-r">

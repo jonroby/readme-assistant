@@ -19,8 +19,9 @@ type OverwriteReadmeDialogProps = {
 
 /**
  * Confirms overwriting an existing README. Controlled (no trigger): the save
- * click decides whether to open it. Only used on the directory-handle write
- * path, which replaces the file in place with no OS dialog of its own.
+ * click decides whether to open it. The write replaces README.md in place via
+ * the project's folder handle, which has no OS dialog of its own — so we gate
+ * the overwrite here.
  */
 export function OverwriteReadmeDialog({
   open,

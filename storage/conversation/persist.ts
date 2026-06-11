@@ -4,7 +4,7 @@ const STORAGE_KEY = 'conversation';
 
 /**
  * Persist the chat messages so the conversation survives a reload, alongside
- * the project (see lib/project). Mirrors that module's save/load/clear shape.
+ * the project (see ./project). Same save/load/clear shape.
  */
 export function saveConversation(messages: UIMessage[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));

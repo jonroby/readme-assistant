@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { runListFiles } from './run';
-import type { Project } from '@/lib/project';
+import { makeProject } from '@/lib/project.fixture';
 
-const project: Project = {
+const project = makeProject({
   name: 'demo',
   totalBytes: 0,
   files: [
@@ -10,7 +10,7 @@ const project: Project = {
     { path: 'src/index.ts', content: '' },
     { path: 'src/util.ts', content: '' },
   ],
-};
+});
 
 describe('runListFiles', () => {
   it('lists all paths when no prefix is given', () => {
@@ -37,14 +37,14 @@ describe('runListFiles', () => {
   });
 
   it('caps the output and notes how many more there are', () => {
-    const many: Project = {
+    const many = makeProject({
       name: 'big',
       totalBytes: 0,
       files: Array.from({ length: 305 }, (_, i) => ({
         path: `f${i}.ts`,
         content: '',
       })),
-    };
+    });
     const out = runListFiles({}, many);
     expect(out).toContain('…and 5 more');
   });
