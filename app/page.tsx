@@ -12,8 +12,10 @@ import { FileViewer } from '@/components/file-viewer';
 import { MessageList } from '@/components/message-list';
 import { cn } from '@/lib/utils';
 import { ChatInput } from '@/components/chat-input';
+import { OverwriteReadmeDialog } from '@/components/overwrite-readme-dialog';
 import {
   clearProject,
+  findReadme,
   loadProject,
   readProject,
   saveProject,
@@ -58,6 +60,12 @@ export default function Home() {
   // Path of the file open in the viewer, or null. When set, the layout splits:
   // tree | file viewer | chat. Only one file is viewed at a time.
   const [openFile, setOpenFile] = useState<string | null>(null);
+  // A save awaiting overwrite confirmation. The directory-handle write replaces
+  // README.md in place with no OS dialog, so we confirm here when one exists.
+  const [pendingSave, setPendingSave] = useState<{
+    messageId: string;
+    content: string;
+  } | null>(null);
 
   // The readFile tool runs on the client, so onToolCall needs the latest
   // project. A ref keeps it current without re-creating the chat.
@@ -200,29 +208,42 @@ export default function Home() {
     setOpenFile(null);
   };
 
-  // Runs on a real click (the gesture both the picker and requestPermission
-  // need). With a directory handle we write straight into the project folder;
-  // otherwise we fall back to the save-file dialog. Status is keyed by the
-  // message whose inline button was clicked.
-  const handleSaveReadme = async (messageId: string, content: string) => {
+  // The actual directory-handle write. Replaces README.md in place (no OS
+  // dialog), so callers gate it behind an overwrite confirm when one exists.
+  const writeReadmeToFolder = async (messageId: string, content: string) => {
+    if (!dirHandle) return;
     const report = (status: string) =>
       setSaveStatus((prev) => ({ ...prev, [messageId]: status }));
-    if (dirHandle) {
-      try {
-        if (!(await ensurePermission(dirHandle))) {
-          report('Permission to write to the folder was denied.');
-          return;
-        }
-        await writeFileToDirectory(dirHandle, 'README.md', content);
-        report('README written to the project folder.');
-      } catch (e) {
-        report(
-          `Failed to write README: ${e instanceof Error ? e.message : 'unknown error'}`,
-        );
+    try {
+      if (!(await ensurePermission(dirHandle))) {
+        report('Permission to write to the folder was denied.');
+        return;
       }
+      await writeFileToDirectory(dirHandle, 'README.md', content);
+      report('README written to the project folder.');
+    } catch (e) {
+      report(
+        `Failed to write README: ${e instanceof Error ? e.message : 'unknown error'}`,
+      );
+    }
+  };
+
+  // Runs on a real click (the gesture both the picker and requestPermission
+  // need). With a directory handle we write straight into the project folder —
+  // confirming first if that would overwrite an existing README (the handle
+  // write has no OS dialog). Otherwise we fall back to the save-file dialog,
+  // which prompts on overwrite itself.
+  const handleSaveReadme = async (messageId: string, content: string) => {
+    if (dirHandle) {
+      if (project && findReadme(project)) {
+        setPendingSave({ messageId, content });
+        return;
+      }
+      await writeReadmeToFolder(messageId, content);
       return;
     }
-    report(await saveReadmeToDisk(content));
+    const status = await saveReadmeToDisk(content);
+    setSaveStatus((prev) => ({ ...prev, [messageId]: status }));
   };
 
   const handleSend = (text: string) => {
@@ -287,6 +308,18 @@ export default function Home() {
           placeholder="Ask about your project..."
         />
       </main>
+      <OverwriteReadmeDialog
+        open={pendingSave !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingSave(null);
+        }}
+        onConfirm={() => {
+          if (pendingSave) {
+            void writeReadmeToFolder(pendingSave.messageId, pendingSave.content);
+            setPendingSave(null);
+          }
+        }}
+      />
     </div>
   );
 }
